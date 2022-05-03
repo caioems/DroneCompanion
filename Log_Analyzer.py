@@ -33,13 +33,15 @@ def create_log_path (root_path):
     return log_list
 log_list = create_log_path(path)    
 
-def create_CURR_csv(log_path):
+def create_csv(log_path):
     log = log_path.as_posix()
     path = log_path.parent
-    mycmd = "mavlogdump.py --planner --format csv --types CURR " + str(log) + " > " + str(path) + "/curr.csv"
-    os.system(mycmd)
+    types = ["CURR", "ERR", "MSG"]
+    for i in types:
+        mycmd = "mavlogdump.py --planner --format csv --types " + i + " " + str(log) + " > " + str(path) + "/" + i + ".csv"
+        os.system(mycmd)
     print("CURR csv created in: " + str(path))
-create_CURR_csv(log_list[0])
+create_csv(log_list[0])
 
 
 
