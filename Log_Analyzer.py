@@ -8,8 +8,10 @@ Created on Thu Apr 21 17:17:20 2022
 import pathlib
 import os
 import datetime as dt
+import numpy as np
 import pandas as pd
 import scipy.io
+import subprocess
 from pprint import pprint
 from tkinter import Tk
 from tkinter.filedialog import askdirectory
@@ -31,22 +33,15 @@ def create_log_path (root_path):
     return log_list
 log_list = create_log_path(path)    
 
-def create_curr_csv(log_path):
-        mycmd = "mavlogdump.py --planner --format mat --types CURR,ERR  " + str(log_path) + " --mat_file C:\\Users\\T2\\curr.mat"
-        os.system(mycmd)
-        print("CURR csv created in: " + str(log_path))
+def create_CURR_csv(log_path):
+    log = log_path.as_posix()
+    path = log_path.parent
+    mycmd = "mavlogdump.py --planner --format csv --types CURR " + str(log) + " > " + str(path) + "/curr.csv"
+    os.system(mycmd)
+    print("CURR csv created in: " + str(path))
+create_CURR_csv(log_list[0])
 
-create_curr_csv(log_list[0])
 
-def create_err_csv(log_path):
-        mycmd = "mavlogdump.py --planner --format csv --types ERR " + str(log_path) + " > err.csv"
-        os.system(mycmd)
-        print("ERR csv created in: " + str(log_path))
-
-mat = scipy.io.loadmat(r'C:\Users\T2\145.BIN-490217.mat')
-pqr = pd.Series(mat)
-df = pd.DataFrame({'label':pqr.index, 'list':pqr.values})
-#df = df.drop(index=[0,1,2])
 
 # with open(csv_file, mode = 'r') as f:
 #     df = pd.read_csv(f)
