@@ -43,7 +43,7 @@ def create_cam_df(log_path):
     df = pd.read_csv(csv, index_col='timestamp')
     df.index = pd.to_datetime(df.index, unit='s', origin='unix')
     return df
-    #os.remove(csv) 
+    os.remove(csv) 
 cam_df = create_cam_df(log_list[0])
 
 def create_curr_df(log_path):
@@ -51,7 +51,7 @@ def create_curr_df(log_path):
     df = pd.read_csv(csv, index_col='timestamp')
     df.index = pd.to_datetime(df.index, unit='s', origin='unix')
     return df
-    #os.remove(csv) 
+    os.remove(csv) 
 curr_df = create_curr_df(log_list[0])
 
 def create_err_df(log_path):
@@ -59,7 +59,7 @@ def create_err_df(log_path):
     df = pd.read_csv(csv, index_col='timestamp')
     df.index = pd.to_datetime(df.index, unit='s', origin='unix')
     return df
-    #os.remove(csv) 
+    os.remove(csv) 
 err_df = create_err_df(log_list[0])
     
 
