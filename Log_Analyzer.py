@@ -27,7 +27,8 @@ root.update()
 path = askdirectory(title='Select the root folder:')
 root.destroy()
 
-#lista de logs criada, falta criar lista de subdir
+types = ["CURR", "ERR", "MSG"]
+
 def create_log_path (root_path):
     log_list = list(pathlib.Path(root_path).glob(r"**\**\*.BIN"))
     return log_list
@@ -35,13 +36,25 @@ log_list = create_log_path(path)
 
 def create_csv(log_path):
     log = log_path.as_posix()
-    path = log_path.parent
-    types = ["CURR", "ERR", "MSG"]
+    path = log_path.parent    
     for i in types:
         mycmd = "mavlogdump.py --planner --format csv --types " + i + " " + str(log) + " > " + str(path) + "/" + i + ".csv"
         os.system(mycmd)
-    print("CURR csv created in: " + str(path))
+    print("CSV files created in: " + str(path))
 create_csv(log_list[0])
+
+def convert_time(tst):
+    time = dt.datetime.fromtimestamp(tst)
+    return time
+
+def create_curr_df(log_path):
+    csv = str(log_path.parent) + "/CURR.csv"
+    df = pd.read_csv(csv, index_col='timestamp')
+    df.index = pd.to_datetime(df.index)
+    return df
+    #os.remove(csv) 
+curr_df = create_curr_df(log_list[0])
+    
 
 
 
@@ -53,10 +66,8 @@ create_csv(log_list[0])
 #     os.remove(log_path + 'CURR_' + log_name + '.csv')
 # delete_csv(log_name, log_path)
     
-# def convert_time(tst):
-#     time = dt.datetime.fromtimestamp(tst)
-#     return time
-# df["timestamp"] = df["timestamp"].apply(convert_time)
+
+curr_df.index = curr_df.index.apply(convert_time)
 
 
 
