@@ -7,12 +7,7 @@ Created on Thu Apr 21 17:17:20 2022
 
 import pathlib
 import os
-import datetime as dt
-import numpy as np
 import pandas as pd
-import scipy.io
-import subprocess
-from pprint import pprint
 from tkinter import Tk
 from tkinter.filedialog import askdirectory
 
@@ -27,7 +22,7 @@ root.update()
 path = askdirectory(title='Select the root folder:')
 root.destroy()
 
-types = ["CURR", "ERR", "MSG"]
+types = ["CAM", "CURR", "ERR"] #EV, GPS (HDop), MSG, PARM, POWR, RCOU
 
 def create_log_path (root_path):
     log_list = list(pathlib.Path(root_path).glob(r"**\**\*.BIN"))
@@ -43,17 +38,29 @@ def create_csv(log_path):
     print("CSV files created in: " + str(path))
 create_csv(log_list[0])
 
-def convert_time(tst):
-    time = dt.datetime.fromtimestamp(tst)
-    return time
+def create_cam_df(log_path):
+    csv = str(log_path.parent) + "/CAM.csv"
+    df = pd.read_csv(csv, index_col='timestamp')
+    df.index = pd.to_datetime(df.index, unit='s', origin='unix')
+    return df
+    #os.remove(csv) 
+cam_df = create_cam_df(log_list[0])
 
 def create_curr_df(log_path):
     csv = str(log_path.parent) + "/CURR.csv"
     df = pd.read_csv(csv, index_col='timestamp')
-    df.index = pd.to_datetime(df.index)
+    df.index = pd.to_datetime(df.index, unit='s', origin='unix')
     return df
     #os.remove(csv) 
 curr_df = create_curr_df(log_list[0])
+
+def create_err_df(log_path):
+    csv = str(log_path.parent) + "/ERR.csv"
+    df = pd.read_csv(csv, index_col='timestamp')
+    df.index = pd.to_datetime(df.index, unit='s', origin='unix')
+    return df
+    #os.remove(csv) 
+err_df = create_err_df(log_list[0])
     
 
 
@@ -65,9 +72,6 @@ curr_df = create_curr_df(log_list[0])
 # def delete_csv(log_name, log_path):
 #     os.remove(log_path + 'CURR_' + log_name + '.csv')
 # delete_csv(log_name, log_path)
-    
-
-curr_df.index = curr_df.index.apply(convert_time)
 
 
 
