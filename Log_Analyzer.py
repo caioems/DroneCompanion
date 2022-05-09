@@ -18,7 +18,7 @@ from tkinter.filedialog import askdirectory
 # types = ("CURR", "ERR")
 # csv_file = "C:\\Users\\T2\\CURR_145.csv"
 
-#user prompt for main folder
+#user input & log's path creation
 root = Tk()
 root.update()
 path = askdirectory(title='Select the root folder:')
@@ -31,6 +31,7 @@ def create_log_path (root_path):
     return log_list
 log_list = create_log_path(path)    
 
+#importing data
 def create_csv(log_path):
     log = log_path.as_posix()
     path = log_path.parent    
@@ -41,35 +42,45 @@ def create_csv(log_path):
 create_csv(log_list[0])
 
 def create_cam_df(log_path):
-    csv = str(log_path.parent) + "/CAM.csv"
-    df = pd.read_csv(csv, index_col='timestamp')
+    file = "CAM.csv"
+    location = log_path.parent
+    csv_file = os.path.join(location, file)
+    df = pd.read_csv(csv_file, index_col='timestamp')
     df.index = pd.to_datetime(df.index, unit='s', origin='unix')
+    os.remove(csv_file)
     return df
-    #os.remove(csv)
+    
 cam_df = create_cam_df(log_list[0])
 
 def create_curr_df(log_path):
-    csv = str(log_path.parent) + "/CURR.csv"
-    df = pd.read_csv(csv, index_col='timestamp')
+    file = "CURR.csv"
+    location = log_path.parent
+    csv_file = os.path.join(location, file)
+    df = pd.read_csv(csv_file, index_col='timestamp')
     df.index = pd.to_datetime(df.index, unit='s', origin='unix')
-    return df
-    #os.remove(csv) 
+    os.remove(csv_file)
+    return df 
+
 curr_df = create_curr_df(log_list[0])
 
 def create_err_df(log_path):
-    csv = str(log_path.parent) + "/ERR.csv"
-    df = pd.read_csv(csv, index_col='timestamp')
+    file = "ERR.csv"
+    location = log_path.parent
+    csv_file = os.path.join(location, file)
+    df = pd.read_csv(csv_file, index_col='timestamp')
     df.index = pd.to_datetime(df.index, unit='s', origin='unix')
+    os.remove(csv_file)
     return df
-    #os.remove(csv) 
+ 
 err_df = create_err_df(log_list[0])
 
+#creating kml
 flights_kml = simplekml.Kml()
 rgb = flights_kml.newfolder(name='RGB')
 agr = flights_kml.newfolder(name='AGR')
 
 def create_linestring(log_path, kml):
-    ls = kml.newlinestring(name = log_path.name)
+    ls = kml.containers[1].newlinestring(name = log_path.name)
     coords_list = []
     for index, row in cam_df.iterrows():
         coords_list.append((row.Lng, row.Lat))
@@ -92,7 +103,6 @@ flights_kml.save(path + '/flights.kml')
 # with open(csv_file, mode = 'r') as f:
 #     df = pd.read_csv(f)
 #     f.close()
-
 # def delete_csv(log_name, log_path):
 #     os.remove(log_path + 'CURR_' + log_name + '.csv')
 # delete_csv(log_name, log_path)
