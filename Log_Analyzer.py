@@ -7,11 +7,12 @@ Created on Thu Apr 21 17:17:20 2022
 
 import pathlib
 import os
-import numpy as np
+#import numpy as np
 import pandas as pd
 import simplekml
 from tkinter import Tk
 from tkinter.filedialog import askdirectory
+from tqdm import tqdm
 
 # log_name = "145"
 # log_path = "C:\\Users\\T2\\"
@@ -38,8 +39,7 @@ def create_csv(log_path):
     for i in types:
         mycmd = "mavlogdump.py --planner --format csv --types " + i + " " + str(log) + " > " + str(path) + "/" + i + ".csv"
         os.system(mycmd)
-    print("CSV files created in: " + str(path))
-create_csv(log_list[0])
+#create_csv(log_list[0])
 
 def create_cam_df(log_path):
     file = "CAM.csv"
@@ -50,7 +50,7 @@ def create_cam_df(log_path):
     os.remove(csv_file)
     return df
     
-cam_df = create_cam_df(log_list[0])
+#cam_df = create_cam_df(log_list[0])
 
 def create_curr_df(log_path):
     file = "CURR.csv"
@@ -61,7 +61,7 @@ def create_curr_df(log_path):
     os.remove(csv_file)
     return df 
 
-curr_df = create_curr_df(log_list[0])
+#curr_df = create_curr_df(log_list[0])
 
 def create_err_df(log_path):
     file = "ERR.csv"
@@ -72,7 +72,7 @@ def create_err_df(log_path):
     os.remove(csv_file)
     return df
  
-err_df = create_err_df(log_list[0])
+#err_df = create_err_df(log_list[0])
 
 #creating kml
 flights_kml = simplekml.Kml()
@@ -86,7 +86,10 @@ def create_linestring(log_path, kml):
         coords_list.append((row.Lng, row.Lat))
     ls.coords = coords_list
 
-create_linestring(log_list[0], flights_kml)
+for i in tqdm(log_list):
+    create_csv(i)
+    cam_df = create_cam_df(i)
+    create_linestring(i, flights_kml)
 
 flights_kml.save(path + '/flights.kml')
 
