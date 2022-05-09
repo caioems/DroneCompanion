@@ -13,11 +13,6 @@ from tkinter import Tk
 from tkinter.filedialog import askdirectory
 from tqdm import tqdm
 
-# log_name = "145"
-# log_path = "C:\\Users\\T2\\"
-# types = ("CURR", "ERR")
-# csv_file = "C:\\Users\\T2\\CURR_145.csv"
-
 #user input & log's path creation
 root = Tk()
 root.update()
@@ -38,7 +33,6 @@ def create_csv(log_path):
     for i in types:
         mycmd = "mavlogdump.py --planner --format csv --types " + i + " " + str(log) + " > " + str(path) + "/" + i + ".csv"
         os.system(mycmd)
-#create_csv(log_list[0])
 
 def create_cam_df(log_path):
     file = "CAM.csv"
@@ -48,8 +42,6 @@ def create_cam_df(log_path):
     df.index = pd.to_datetime(df.index, unit='s', origin='unix')
     os.remove(csv_file)
     return df
-    
-#cam_df = create_cam_df(log_list[0])
 
 def create_curr_df(log_path):
     file = "CURR.csv"
@@ -60,8 +52,6 @@ def create_curr_df(log_path):
     os.remove(csv_file)
     return df 
 
-#curr_df = create_curr_df(log_list[0])
-
 def create_err_df(log_path):
     file = "ERR.csv"
     location = log_path.parent
@@ -70,13 +60,25 @@ def create_err_df(log_path):
     df.index = pd.to_datetime(df.index, unit='s', origin='unix')
     os.remove(csv_file)
     return df
- 
-#err_df = create_err_df(log_list[0])
 
 #creating kml
-flights_kml = simplekml.Kml()
-rgb = flights_kml.newfolder(name='RGB')
-agr = flights_kml.newfolder(name='AGR')
+def create_kml(kml_name):
+    kml_name = simplekml.Kml()
+    kml_name.newfolder(name='RGB')
+    kml_name.newfolder(name='AGR')
+    return kml_name
+
+def rgb_style(feature):
+    rgb_style = simplekml.LineStyle()
+    rgb_style.color = simplekml.Color.whitesmoke
+    rgb_style.width = 2.0
+    feature.linestyle = rgb_style
+
+def agr_style(feature):
+    agr_style = simplekml.LineStyle()
+    agr_style.color = simplekml.Color.red
+    agr_style.width = 2.0
+    feature.linestyle = agr_style
 
 def create_linestring(log_path, kml, container_index):
     ls = kml.containers[container_index].newlinestring(name = log_path.name)
@@ -84,34 +86,22 @@ def create_linestring(log_path, kml, container_index):
     for index, row in cam_df.iterrows():
         coords_list.append((row.Lng, row.Lat))
     ls.coords = coords_list
+    return ls
 
+flights_kml = create_kml('flights_kml')
 for i in tqdm(log_list):
     create_csv(i)    
     cam_df = create_cam_df(i)
     if any("90_rgb" in s for s in i.parts):
-        create_linestring(i, flights_kml, 0)
+        rgb = create_linestring(i, flights_kml, 0)
+        rgb_style(rgb)
     elif any("120_agr" in s for s in i.parts):
-        create_linestring(i, flights_kml, 1)   
-
+        agr = create_linestring(i, flights_kml, 1)
+        agr_style(agr)
+    else:
+        print("Invalid folder name.")
 
 flights_kml.save(path + '/flights.kml')
-
-
-
-                  
-                    
-    
-    
-    
-
-
-
-# with open(csv_file, mode = 'r') as f:
-#     df = pd.read_csv(f)
-#     f.close()
-# def delete_csv(log_name, log_path):
-#     os.remove(log_path + 'CURR_' + log_name + '.csv')
-# delete_csv(log_name, log_path)
 
 
 
