@@ -7,7 +7,6 @@ Created on Thu Apr 21 17:17:20 2022
 
 import pathlib
 import os
-#import numpy as np
 import pandas as pd
 import simplekml
 from tkinter import Tk
@@ -79,17 +78,21 @@ flights_kml = simplekml.Kml()
 rgb = flights_kml.newfolder(name='RGB')
 agr = flights_kml.newfolder(name='AGR')
 
-def create_linestring(log_path, kml):
-    ls = kml.containers[1].newlinestring(name = log_path.name)
+def create_linestring(log_path, kml, container_index):
+    ls = kml.containers[container_index].newlinestring(name = log_path.name)
     coords_list = []
     for index, row in cam_df.iterrows():
         coords_list.append((row.Lng, row.Lat))
     ls.coords = coords_list
 
 for i in tqdm(log_list):
-    create_csv(i)
+    create_csv(i)    
     cam_df = create_cam_df(i)
-    create_linestring(i, flights_kml)
+    if any("90_rgb" in s for s in i.parts):
+        create_linestring(i, flights_kml, 0)
+    elif any("120_agr" in s for s in i.parts):
+        create_linestring(i, flights_kml, 1)   
+
 
 flights_kml.save(path + '/flights.kml')
 
