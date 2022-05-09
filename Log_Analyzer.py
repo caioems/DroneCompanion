@@ -13,7 +13,7 @@ from tkinter import Tk
 from tkinter.filedialog import askdirectory
 from tqdm import tqdm
 
-#user input & log's path creation
+#user input & WindowsPath object creation
 root = Tk()
 root.update()
 path = askdirectory(title='Select the root folder:')
@@ -23,8 +23,7 @@ types = ["CAM", "CURR", "ERR"] #EV, GPS (HDop), MSG, PARM, POWR, RCOU
 
 def create_log_path (root_path):
     log_list = list(pathlib.Path(root_path).glob(r"**\**\*.BIN"))
-    return log_list
-log_list = create_log_path(path)    
+    return log_list   
 
 #importing data
 def create_csv(log_path):
@@ -88,6 +87,8 @@ def create_linestring(log_path, kml, container_index):
     ls.coords = coords_list
     return ls
 
+#running functions...
+log_list = create_log_path(path) 
 flights_kml = create_kml('flights_kml')
 for i in tqdm(log_list):
     create_csv(i)    
