@@ -7,7 +7,9 @@ Created on Thu Apr 21 17:17:20 2022
 
 import pathlib
 import os
+import numpy as np
 import pandas as pd
+import simplekml
 from tkinter import Tk
 from tkinter.filedialog import askdirectory
 
@@ -43,7 +45,7 @@ def create_cam_df(log_path):
     df = pd.read_csv(csv, index_col='timestamp')
     df.index = pd.to_datetime(df.index, unit='s', origin='unix')
     return df
-    os.remove(csv) 
+    #os.remove(csv)
 cam_df = create_cam_df(log_list[0])
 
 def create_curr_df(log_path):
@@ -51,7 +53,7 @@ def create_curr_df(log_path):
     df = pd.read_csv(csv, index_col='timestamp')
     df.index = pd.to_datetime(df.index, unit='s', origin='unix')
     return df
-    os.remove(csv) 
+    #os.remove(csv) 
 curr_df = create_curr_df(log_list[0])
 
 def create_err_df(log_path):
@@ -59,8 +61,30 @@ def create_err_df(log_path):
     df = pd.read_csv(csv, index_col='timestamp')
     df.index = pd.to_datetime(df.index, unit='s', origin='unix')
     return df
-    os.remove(csv) 
+    #os.remove(csv) 
 err_df = create_err_df(log_list[0])
+
+flights_kml = simplekml.Kml()
+rgb = flights_kml.newfolder(name='RGB')
+agr = flights_kml.newfolder(name='AGR')
+
+def create_linestring(log_path, kml):
+    ls = kml.newlinestring(name = log_path.name)
+    coords_list = []
+    for index, row in cam_df.iterrows():
+        coords_list.append((row.Lng, row.Lat))
+    ls.coords = coords_list
+
+create_linestring(log_list[0], flights_kml)
+
+flights_kml.save(path + '/flights.kml')
+
+
+
+                  
+                    
+    
+    
     
 
 
