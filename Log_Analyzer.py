@@ -28,7 +28,7 @@ def create_log_path (root_path):
 
 #importing data
 def create_csv(log_path):
-    types = ["CAM", "EV"] #BAT, EV, ERR, GPS (HDop), MSG, PARM, POWR, RCOU
+    types = ["CAM", "EV", "CURR"] #ERR, GPS (HDop), MSG, PARM, POWR, RCOU
     log = log_path.as_posix()
     path = log_path.parent    
     for t in types:
@@ -91,10 +91,10 @@ for i in tqdm(log_list):
     create_csv(i)    
     cam_df = create_df(i, "CAM")
     ev_df = create_df(i, "EV")
-    bat_df = create_df(i, "BAT")
+    curr_df = create_df(i, "CURR")
     if any("90_rgb" in s for s in i.parts):
         rgb = create_linestring(i, flights_kml, 0)
-        rgb_style(rgb)
+        rgb_style(rgb) 
         create_balloon_report(rgb)
     elif any("120_agr" in s for s in i.parts):
         agr = create_linestring(i, flights_kml, 1)
