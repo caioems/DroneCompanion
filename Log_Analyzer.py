@@ -28,7 +28,7 @@ def create_log_path (root_path):
 
 #importing data
 def create_csv(log_path):
-    types = ["CAM", "EV", "CURR"] #ERR, GPS (HDop), MSG, PARM, POWR, RCOU
+    types = ["CAM", "EV", "BAT"] #ERR, GPS (HDop), MSG, PARM, POWR, RCOU
     log = log_path.as_posix()
     path = log_path.parent    
     for t in types:
@@ -73,7 +73,7 @@ def create_linestring(log_path, kml, container_index):
 
 def create_balloon_report(feature):
     flight_time = ev_df.index[-1] - ev_df.index[0]
-    feature.balloonstyle.text = "Flight time: " + str(flight_time.components.minutes) + "m " + str(flight_time.components.seconds) + "s"
+    feature.balloonstyle.text = "Flight time: " + str(flight_time.components.minutes) + "m " + str(flight_time.components.seconds) + "s \n" + "Battery consumed: " + str(round(bat_df.CurrTot[-1])) + " mAh"
     #feature.balloonstyle.bgcolor = simplekml.Color.lightgreen
     #feature.balloonstyle.textcolor = simplekml.Color.rgb(0, 0, 255)
     
@@ -91,7 +91,7 @@ for i in tqdm(log_list):
     create_csv(i)    
     cam_df = create_df(i, "CAM")
     ev_df = create_df(i, "EV")
-    curr_df = create_df(i, "CURR")
+    bat_df = create_df(i, "BAT")
     if any("90_rgb" in s for s in i.parts):
         rgb = create_linestring(i, flights_kml, 0)
         rgb_style(rgb) 
