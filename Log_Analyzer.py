@@ -28,7 +28,7 @@ def create_log_path (root_path):
 
 #importing data
 def create_csv(log_path):
-    types = ["CAM", "EV", "BAT"] #ERR, GPS (HDop), MSG, PARM, POWR, RCOU
+    types = ["CAM", "EV", "BAT", "ERR"] #ERR, GPS (HDop), MSG, PARM, POWR, RCOU
     log = log_path.as_posix()
     path = log_path.parent    
     for t in types:
@@ -71,11 +71,38 @@ def create_linestring(log_path, kml, container_index):
     ls.coords = coords_list
     return ls
 
+class Errors:
+    def __init__(self):
+        self.ekf, self.gcs, self.gps = "0", "0", "0"
+    def gcs_count(self):
+        try:
+            x = str(err_df.Subsys.value_counts()[5])
+            return x
+        except:
+            return "0"
+    def ekf_count(self):
+        try:
+            x = str(err_df.Subsys.value_counts()[17])
+            return x
+        except:
+            return "0"
+    def gps_glitch_count(self):
+        try:
+            x = str(err_df.Subsys.value_counts()[11])
+            return x
+        except:
+            return "0"
+        
+
 def create_balloon_report(feature):
     flight_time = ev_df.index[-1] - ev_df.index[0]
-    feature.balloonstyle.text = "Flight time: " + str(flight_time.components.minutes) + "m " + str(flight_time.components.seconds) + "s \n" + "Battery consumed: " + str(round(bat_df.CurrTot[-1])) + " mAh"
-    #feature.balloonstyle.bgcolor = simplekml.Color.lightgreen
-    #feature.balloonstyle.textcolor = simplekml.Color.rgb(0, 0, 255)
+    errors = Errors()    
+    feature.balloonstyle.text = "Flight time: " + str(flight_time.components.minutes) + "m " + str(flight_time.components.seconds) + "s \n" +\
+                                "Bat. consumed: " + str(round(bat_df.CurrTot[-1])) + " mAh \n" +\
+                                "\n" +\
+                                "Radio FS: " + errors.gcs_count() + "\n" +\
+                                "EKF variance: " + errors.ekf_count() + "\n" +\
+                                "GPS glitch: " + errors.gps_glitch_count()
     
 # def create_logbook(log_path):
 #     lb_dict = {"log":[], "bat_bto":[], "bat_ato":[], "bat_amp":[], "bat_res":[], "bat_ald":[], "to_time":[], "ld_time":[]}
@@ -92,6 +119,7 @@ for i in tqdm(log_list):
     cam_df = create_df(i, "CAM")
     ev_df = create_df(i, "EV")
     bat_df = create_df(i, "BAT")
+    err_df = create_df(i, "ERR")
     if any("90_rgb" in s for s in i.parts):
         rgb = create_linestring(i, flights_kml, 0)
         rgb_style(rgb) 
