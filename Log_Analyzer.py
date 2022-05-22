@@ -71,27 +71,28 @@ def create_linestring(log_path, kml, container_index):
     ls.coords = coords_list
     return ls
 
+#report creation
 class Errors:
     def __init__(self):
         self.ekf, self.gcs, self.gps = "0", "0", "0"
     def gcs_count(self):
         try:
-            x = str(err_df.Subsys.value_counts()[5])
-            return x
+            self.gcs = str(err_df.Subsys.value_counts()[5])
+            return self.gcs
         except:
-            return "0"
+            return self.gcs
     def ekf_count(self):
         try:
-            x = str(err_df.Subsys.value_counts()[17])
-            return x
+            self.ekf = str(err_df.Subsys.value_counts()[17])
+            return self.ekf
         except:
-            return "0"
+            return self.ekf
     def gps_glitch_count(self):
         try:
-            x = str(err_df.Subsys.value_counts()[11])
-            return x
+            self.gps = str(err_df.Subsys.value_counts()[11])
+            return self.gps
         except:
-            return "0"
+            return self.gps
         
 
 def create_balloon_report(feature):
@@ -99,6 +100,7 @@ def create_balloon_report(feature):
     errors = Errors()    
     feature.balloonstyle.text = "Flight time: " + str(flight_time.components.minutes) + "m " + str(flight_time.components.seconds) + "s \n" +\
                                 "Bat. consumed: " + str(round(bat_df.CurrTot[-1])) + " mAh \n" +\
+                                "Pics taken: " + str(cam_df.shape[0]) + "\n" +\
                                 "\n" +\
                                 "Radio FS: " + errors.gcs_count() + "\n" +\
                                 "EKF variance: " + errors.ekf_count() + "\n" +\
