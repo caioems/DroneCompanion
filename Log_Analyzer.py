@@ -12,6 +12,7 @@ import pathlib
 import os
 import pandas as pd
 import simplekml
+from statistics import median
 from tkinter import Tk
 from tkinter.filedialog import askdirectory
 from tqdm import tqdm
@@ -28,7 +29,7 @@ def create_log_path (root_path):
 
 #importing data
 def create_csv(log_path):
-    types = ["CAM", "EV", "BAT", "ERR"] #ERR, GPS (HDop), MSG, PARM, POWR, RCOU
+    types = ["CAM", "EV", "BAT", "ERR", "GPS"] #ERR, GPS (HDop), MSG, PARM, POWR, RCOU
     log = log_path.as_posix()
     path = log_path.parent    
     for t in types:
@@ -74,7 +75,10 @@ def create_linestring(log_path, kml, container_index):
 #report creation
 class Errors:
     def __init__(self):
-        self.ekf, self.gcs, self.gps = "0", "0", "0"
+        self.ekf = "0"
+        self.gcs = "0"
+        self.gps = "0"
+        
     def gcs_count(self):
         try:
             self.gcs = str(err_df.Subsys.value_counts()[5])
@@ -100,8 +104,8 @@ def create_balloon_report(feature):
     errors = Errors()    
     feature.balloonstyle.text = "Flight time: " + str(flight_time.components.minutes) + "m " + str(flight_time.components.seconds) + "s \n" +\
                                 "Bat. consumed: " + str(round(bat_df.CurrTot[-1])) + " mAh \n" +\
-                                "Pics taken: " + str(cam_df.shape[0]) + "\n" +\
                                 "\n" +\
+                                "HDop: " + str(median(gps_df.HDop)) + "\n" +\
                                 "Radio FS: " + errors.gcs_count() + "\n" +\
                                 "EKF variance: " + errors.ekf_count() + "\n" +\
                                 "GPS glitch: " + errors.gps_glitch_count()
@@ -122,6 +126,7 @@ for i in tqdm(log_list):
     ev_df = create_df(i, "EV")
     bat_df = create_df(i, "BAT")
     err_df = create_df(i, "ERR")
+    gps_df = create_df(i, "GPS")
     if any("90_rgb" in s for s in i.parts):
         rgb = create_linestring(i, flights_kml, 0)
         rgb_style(rgb) 
@@ -133,10 +138,4 @@ for i in tqdm(log_list):
     else:
         print("Invalid folder name.")
 
-flights_kml.save(path + '/flights.kml')
-
-
-
-
-
-                     
+flights_kml.save(path + '/flights.kml')             
