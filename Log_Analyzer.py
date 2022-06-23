@@ -18,10 +18,12 @@ from tkinter.filedialog import askdirectory
 from tqdm import tqdm
 
 #user input & WindowsPath object creation
-root = Tk()
-root.update()
-path = askdirectory(title='Select the root folder:')
-root.destroy()
+def input_window():
+    root = Tk()
+    root.update()
+    path = askdirectory(title='Select the root folder:')
+    root.destroy()
+    return path
 
 def create_log_path (root_path):
     log_list = list(pathlib.Path(root_path).glob(r"**\**\*.BIN"))
@@ -111,8 +113,10 @@ def create_balloon_report(feature):
                                 "GPS glitch: " + errors.gps_glitch_count()
                                 
 def day_check():
+   path = input_window()
    log_list = create_log_path(path)     
-   flights_kml = create_kml('flights_kml')    
+   flights_kml = create_kml('flights_kml')
+    
    for i in tqdm(log_list):
        create_csv(i)    
        cam_df = create_df(i, "CAM")
@@ -133,7 +137,8 @@ def day_check():
    flights_kml.save(path + '/flights.kml') 
 
 #running functions...
-if __name__ == "__main__":    
+if __name__ == "__main__":
+    path = input_window()    
     log_list = create_log_path(path)     
     flights_kml = create_kml('flights_kml')    
     for i in tqdm(log_list):
