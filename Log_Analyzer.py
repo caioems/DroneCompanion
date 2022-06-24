@@ -111,52 +111,28 @@ def create_balloon_report(feature):
                                 "Radio FS: " + errors.gcs_count() + "\n" +\
                                 "EKF variance: " + errors.ekf_count() + "\n" +\
                                 "GPS glitch: " + errors.gps_glitch_count()
-                                
-def day_check():
-   path = input_window()
-   log_list = create_log_path(path)     
-   flights_kml = create_kml('flights_kml')
-    
-   for i in tqdm(log_list):
-       create_csv(i)    
-       cam_df = create_df(i, "CAM")
-       ev_df = create_df(i, "EV")
-       bat_df = create_df(i, "BAT")
-       err_df = create_df(i, "ERR")
-       gps_df = create_df(i, "GPS")
-       if any("90_rgb" in s for s in i.parts):
-           rgb = create_linestring(i, flights_kml, 0)
-           rgb_style(rgb) 
-           create_balloon_report(rgb)
-       elif any("120_agr" in s for s in i.parts):
-           agr = create_linestring(i, flights_kml, 1)
-           agr_style(agr)
-           create_balloon_report(agr)
-       else:
-           print("Invalid folder name.")    
-   flights_kml.save(path + '/flights.kml') 
 
 #running functions...
-if __name__ == "__main__":
-    path = input_window()    
-    log_list = create_log_path(path)     
-    flights_kml = create_kml('flights_kml')    
-    for i in tqdm(log_list):
-        create_csv(i)    
-        cam_df = create_df(i, "CAM")
-        ev_df = create_df(i, "EV")
-        bat_df = create_df(i, "BAT")
-        err_df = create_df(i, "ERR")
-        gps_df = create_df(i, "GPS")
-        if any("90_rgb" in s for s in i.parts):
-            rgb = create_linestring(i, flights_kml, 0)
-            rgb_style(rgb) 
-            create_balloon_report(rgb)
-        elif any("120_agr" in s for s in i.parts):
-            agr = create_linestring(i, flights_kml, 1)
-            agr_style(agr)
-            create_balloon_report(agr)
-        else:
-            print("Invalid folder name.")    
-    flights_kml.save(path + '/flights.kml')
+# if __name__ == "__main__":
+path = input_window()    
+log_list = create_log_path(path)     
+flights_kml = create_kml('flights_kml')    
+for i in tqdm(log_list):
+    create_csv(i)    
+    cam_df = create_df(i, "CAM")
+    ev_df = create_df(i, "EV")
+    bat_df = create_df(i, "BAT")
+    err_df = create_df(i, "ERR")
+    gps_df = create_df(i, "GPS")
+    if any("90_rgb" in s for s in i.parts):
+        rgb = create_linestring(i, flights_kml, 0)
+        rgb_style(rgb) 
+        create_balloon_report(rgb)
+    elif any("120_agr" in s for s in i.parts):
+        agr = create_linestring(i, flights_kml, 1)
+        agr_style(agr)
+        create_balloon_report(agr)
+    else:
+        print("Invalid folder name.")    
+flights_kml.save(path + '/flights.kml')
 

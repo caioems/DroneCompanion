@@ -4,12 +4,21 @@ Created on Wed Jun 22 15:22:55 2022
 
 @author: T2
 """
-from Log_Analyzer import *
-from tkinter import *
 
-main_window = Tk()
-main_window.title("The Toolbox")
-dc_button = Button(main_window, text="Day Checker", command=day_check)
-dc_button.grid(column=0, row=0)
+import tkinter as ttk
 
-main_window.mainloop()
+def log_command():
+    import Log_Analyzer
+    
+def bot_command():
+    import gtbot
+
+if __name__ == "__main__":
+    main_window = ttk.Tk()
+    main_window.title("The Toolbox")
+    dc_button = ttk.Button(main_window, text="Day Checker", command=log_command)
+    dc_button.grid(column=0, row=0)
+    gt_button = ttk.Button(main_window, text="Geotag Bot", command=bot_command)
+    gt_button.grid(column=1, row=0)
+    
+    main_window.mainloop()
