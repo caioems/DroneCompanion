@@ -17,6 +17,7 @@ from tkinter import Tk
 from tkinter.filedialog import askdirectory
 from tqdm import tqdm
 
+##defining functions...
 #user input & WindowsPath object creation
 def input_window():
     root = Tk()
@@ -31,7 +32,7 @@ def create_log_path (root_path):
 
 #importing data
 def create_csv(log_path):
-    types = ["CAM", "EV", "BAT", "ERR", "GPS"] #ERR, GPS (HDop), MSG, PARM, POWR, RCOU
+    types = ["CAM", "EV", "BAT", "ERR", "GPS", "TERR"] #ERR, GPS (HDop), MSG, PARM, POWR, RCOU
     log = log_path.as_posix()
     path = log_path.parent    
     for t in types:
@@ -75,45 +76,45 @@ def create_linestring(log_path, kml, container_index):
     return ls
 
 #report creation
-class Errors:
-    def __init__(self):
-        self.ekf = "0"
-        self.gcs = "0"
-        self.gps = "0"
+# class Errors:
+#     def __init__(self):
+#         self.ekf = "0"
+#         self.gcs = "0"
+#         self.gps = "0"
         
-    def gcs_count(self):
-        try:
-            self.gcs = str(err_df.Subsys.value_counts()[5])
-            return self.gcs
-        except:
-            return self.gcs
-    def ekf_count(self):
-        try:
-            self.ekf = str(err_df.Subsys.value_counts()[17])
-            return self.ekf
-        except:
-            return self.ekf
-    def gps_glitch_count(self):
-        try:
-            self.gps = str(err_df.Subsys.value_counts()[11])
-            return self.gps
-        except:
-            return self.gps
+#     def gcs_count(self):
+#         try:
+#             self.gcs = str(err_df.Subsys.value_counts()[5])
+#             return self.gcs
+#         except:
+#             return self.gcs
+#     def ekf_count(self):
+#         try:
+#             self.ekf = str(err_df.Subsys.value_counts()[17])
+#             return self.ekf
+#         except:
+#             return self.ekf
+#     def gps_glitch_count(self):
+#         try:
+#             self.gps = str(err_df.Subsys.value_counts()[11])
+#             return self.gps
+#         except:
+#             return self.gps
         
 
 def create_balloon_report(feature):
     flight_time = ev_df.index[-1] - ev_df.index[0]
-    errors = Errors()    
+    #errors = Errors()    
     feature.balloonstyle.text = "Flight time: " + str(flight_time.components.minutes) + "m " + str(flight_time.components.seconds) + "s \n" +\
                                 "Bat. consumed: " + str(round(bat_df.CurrTot[-1])) + " mAh \n" +\
                                 "\n" +\
-                                "HDop: " + str(median(gps_df.HDop)) + "\n" +\
-                                "Radio FS: " + errors.gcs_count() + "\n" +\
-                                "EKF variance: " + errors.ekf_count() + "\n" +\
-                                "GPS glitch: " + errors.gps_glitch_count()
+                                "HDop: " + str(median(gps_df.HDop)) + "\n" #+\
+                                #"Radio FS: " + errors.gcs_count() + "\n" +\
+                                #"EKF variance: " + errors.ekf_count() + "\n" +\
+                                #"GPS glitch: " + errors.gps_glitch_count()
 
-#running functions...
-# if __name__ == "__main__":
+##running functions...
+#if __name__ == "__main__":
 path = input_window()    
 log_list = create_log_path(path)     
 flights_kml = create_kml('flights_kml')    
@@ -124,15 +125,19 @@ for i in tqdm(log_list):
     bat_df = create_df(i, "BAT")
     err_df = create_df(i, "ERR")
     gps_df = create_df(i, "GPS")
-    if any("90_rgb" in s for s in i.parts):
+    terr_df = create_df(i, "TERR")
+    if terr_df['CHeight'].median() < 105:
+    #if any("90_rgb" in s for s in i.parts):
         rgb = create_linestring(i, flights_kml, 0)
         rgb_style(rgb) 
         create_balloon_report(rgb)
-    elif any("120_agr" in s for s in i.parts):
+    elif terr_df['CHeight'].median() > 105:
+    #elif any("120_agr" in s for s in i.parts):
         agr = create_linestring(i, flights_kml, 1)
         agr_style(agr)
         create_balloon_report(agr)
     else:
         print("Invalid folder name.")    
 flights_kml.save(path + '/flights.kml')
+    
 
