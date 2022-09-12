@@ -106,9 +106,9 @@ def create_balloon_report(feature):
     flight_time = ev_df.index[-1] - ev_df.index[0]
     #errors = Errors()    
     feature.balloonstyle.text = "Flight time: " + str(flight_time.components.minutes) + "m " + str(flight_time.components.seconds) + "s \n" +\
-                                "Bat. consumed: " + str(round(bat_df.CurrTot[-1])) + " mAh \n" +\
-                                "\n" +\
-                                "HDop: " + str(median(gps_df.HDop)) + "\n" #+\
+                                "Bat. consumed: " + str(round(bat_df.CurrTot[-1])) + " mAh \n" #+\
+                                #"\n" +\
+                                #"HDop: " + str(median(gps_df.HDop)) + "\n" #+\
                                 #"Radio FS: " + errors.gcs_count() + "\n" +\
                                 #"EKF variance: " + errors.ekf_count() + "\n" +\
                                 #"GPS glitch: " + errors.gps_glitch_count()
@@ -123,8 +123,8 @@ for i in tqdm(log_list):
     cam_df = create_df(i, "CAM")
     ev_df = create_df(i, "EV")
     bat_df = create_df(i, "BAT")
-    err_df = create_df(i, "ERR")
-    gps_df = create_df(i, "GPS")
+    #err_df = create_df(i, "ERR")
+    #gps_df = create_df(i, "GPS")
     terr_df = create_df(i, "TERR")
     if terr_df['CHeight'].median() < 105:
     #if any("90_rgb" in s for s in i.parts):
