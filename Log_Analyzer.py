@@ -18,7 +18,7 @@ from tkinter.filedialog import askdirectory
 from tqdm import tqdm
 
 ##defining functions...
-#user input & WindowsPath object creation
+#user input for root folder & log list's WindowsPath object creation
 def input_window():
     root = Tk()
     root.update()
@@ -30,16 +30,17 @@ def create_log_path (root_path):
     log_list = list(pathlib.Path(root_path).glob(r"**\**\*.BIN"))
     return log_list   
 
-#importing data
+#data modeling
 def create_csv(log_path):
-    types = ["CAM", "EV", "BAT", "ERR", "GPS", "TERR"] #ERR, GPS (HDop), MSG, PARM, POWR, RCOU
+    types = ["CAM", "EV", "BAT", "TERR"]
     log = log_path.as_posix()
-    path = log_path.parent    
-    for t in types:
+    path = log_path.parent
+    for t in types:    
         mycmd = "mavlogdump.py --planner --format csv --types " + t + " " + str(log) + " > " + str(path) + "/" + t + ".csv"
         os.system(mycmd)
 
 def create_df(log_path, csv_name):
+    global file, csv_file
     file = csv_name + ".csv"
     location = log_path.parent
     csv_file = os.path.join(location, file)
@@ -101,7 +102,6 @@ def create_linestring(log_path, kml, container_index):
 #         except:
 #             return self.gps
         
-
 def create_balloon_report(feature):
     flight_time = ev_df.index[-1] - ev_df.index[0]
     #errors = Errors()    
@@ -112,32 +112,33 @@ def create_balloon_report(feature):
                                 #"Radio FS: " + errors.gcs_count() + "\n" +\
                                 #"EKF variance: " + errors.ekf_count() + "\n" +\
                                 #"GPS glitch: " + errors.gps_glitch_count()
+##main function                               
+def day_checker():
+    global path, log_list, flights_kml
+    path = input_window()    
+    log_list = create_log_path(path)     
+    flights_kml = create_kml('flights_kml')    
+    for i in tqdm(log_list):
+        create_csv(i)
+        global cam_df, ev_df, bat_df, terr_df
+        cam_df = create_df(i, "CAM")
+        ev_df = create_df(i, "EV")
+        bat_df = create_df(i, "BAT")
+        terr_df = create_df(i, "TERR")
+        if terr_df['CHeight'].median() < 105:
+            rgb = create_linestring(i, flights_kml, 0)
+            rgb_style(rgb) 
+            create_balloon_report(rgb)
+        elif terr_df['CHeight'].median() > 105:
+            agr = create_linestring(i, flights_kml, 1)
+            agr_style(agr)
+            create_balloon_report(agr)
+        else:
+            print("Invalid folder name.")
+    flights_kml.save(path + '/flights.kml')
 
-##running functions...
-#if __name__ == "__main__":
-path = input_window()    
-log_list = create_log_path(path)     
-flights_kml = create_kml('flights_kml')    
-for i in tqdm(log_list):
-    create_csv(i)    
-    cam_df = create_df(i, "CAM")
-    ev_df = create_df(i, "EV")
-    bat_df = create_df(i, "BAT")
-    #err_df = create_df(i, "ERR")
-    #gps_df = create_df(i, "GPS")
-    terr_df = create_df(i, "TERR")
-    if terr_df['CHeight'].median() < 105:
-    #if any("90_rgb" in s for s in i.parts):
-        rgb = create_linestring(i, flights_kml, 0)
-        rgb_style(rgb) 
-        create_balloon_report(rgb)
-    elif terr_df['CHeight'].median() > 105:
-    #elif any("120_agr" in s for s in i.parts):
-        agr = create_linestring(i, flights_kml, 1)
-        agr_style(agr)
-        create_balloon_report(agr)
-    else:
-        print("Invalid folder name.")    
-flights_kml.save(path + '/flights.kml')
+##running main function when not being imported
+if __name__ == "__main__":
+    day_checker()
     
 
