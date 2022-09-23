@@ -83,10 +83,10 @@ class HealthTests:
         self.motors_feedback = ''
         
     def motor_test(self):
-        pwm_df = pd.DataFrame({'M1':[mean(rcou_df.C1), max(rcou_df.C1)],
-                               'M2':[mean(rcou_df.C2), max(rcou_df.C2)], 
-                               'M3':[mean(rcou_df.C3), max(rcou_df.C3)],
-                               'M4':[mean(rcou_df.C4), max(rcou_df.C4)]}).T
+        pwm_df = pd.DataFrame({'1':[mean(rcou_df.C1), max(rcou_df.C1)],
+                               '2':[mean(rcou_df.C2), max(rcou_df.C2)], 
+                               '3':[mean(rcou_df.C3), max(rcou_df.C3)],
+                               '4':[mean(rcou_df.C4), max(rcou_df.C4)]}).T
         pwm_df.columns = ["mean", "max"]
         
         if (max(pwm_df["mean"]) - min(pwm_df["mean"])) > 75:
@@ -94,10 +94,13 @@ class HealthTests:
             self.motors_feedback = ' - motor ' + pwm_df.index[pwm_df['max'] == max(pwm_df["max"])][0]
         elif (max(pwm_df["mean"]) - min(pwm_df["mean"])) > 150:
             self.motors_status = 'FAIL'
-            self.motors_feedback = ''
+            self.motors_feedback = ' - motor ' + pwm_df.index[pwm_df['max'] == max(pwm_df["max"])][0]
         else:
             self.motors_status = 'OK'
             self.motors_feedback = ' - balanced'
+    
+    def run(self):
+        self.motor_test()
         
 def create_balloon_report(feature):
     flight_time = ev_df.index[-1] - ev_df.index[0]
@@ -124,7 +127,7 @@ def day_checker():
         terr_df = create_df(i, "TERR")
         rcou_df = create_df(i, "RCOU")
         report = HealthTests()
-        report.motor_test()
+        report.run()
         if terr_df['CHeight'].median() < 105:
             rgb = create_linestring(i, flights_kml, 0)
             rgb_style(rgb)
