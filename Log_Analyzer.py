@@ -83,10 +83,10 @@ class HealthTests:
         self.motors_feedback = ''
         
     def motor_test(self):
-        pwm_df = pd.DataFrame({'A':[mean(rcou_df.C1), max(rcou_df.C1)],
-                               'B':[mean(rcou_df.C2), max(rcou_df.C2)], 
-                               'C':[mean(rcou_df.C3), max(rcou_df.C3)],
-                               'D':[mean(rcou_df.C4), max(rcou_df.C4)]}).T
+        pwm_df = pd.DataFrame({'M1':[mean(rcou_df.C1), max(rcou_df.C1)],
+                               'M2':[mean(rcou_df.C2), max(rcou_df.C2)], 
+                               'M3':[mean(rcou_df.C3), max(rcou_df.C3)],
+                               'M4':[mean(rcou_df.C4), max(rcou_df.C4)]}).T
         pwm_df.columns = ["mean", "max"]
         
         if (max(pwm_df["mean"]) - min(pwm_df["mean"])) > 75:
