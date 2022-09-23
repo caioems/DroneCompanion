@@ -17,64 +17,100 @@ from tkinter import Tk
 from tkinter.filedialog import askdirectory
 from tqdm import tqdm
 
-##defining functions...
-#user input for root folder & log list's WindowsPath object creation
-def input_window():
-    root = Tk()
-    root.update()
-    path = askdirectory(title='Select the root folder:')
-    root.destroy()
-    return path
-
-def create_log_path (root_path):
-    log_list = list(pathlib.Path(root_path).glob(r"**\**\*.BIN"))
-    return log_list   
-
-#data modeling
-def create_csv(log_path):
-    types = ["CAM", "EV", "BAT", "TERR", "RCOU"]
-    log = log_path.as_posix()
-    path = log_path.parent
-    for t in types:    
-        mycmd = "mavlogdump.py --planner --format csv --types " + t + " " + str(log) + " > " + str(path) + "/" + t + ".csv"
-        os.system(mycmd)
-
-def create_df(log_path, csv_name):
-    global file, csv_file
-    file = csv_name + ".csv"
-    location = log_path.parent
-    csv_file = os.path.join(location, file)
-    df = pd.read_csv(csv_file, index_col='timestamp')
-    df.index = pd.to_datetime(df.index, unit='s', origin='unix')
-    os.remove(csv_file)
-    return df
-
-#creating kml
-def create_kml(kml_name):
-    kml_name = simplekml.Kml()
-    kml_name.newfolder(name='RGB')
-    kml_name.newfolder(name='AGR')
-    return kml_name
-
-def rgb_style(feature):
-    rgb_style = simplekml.Style()
-    rgb_style.linestyle.color = simplekml.Color.whitesmoke
-    rgb_style.linestyle.width = 2.0
-    feature.style = rgb_style
+class DayChecker:
+    #user input for root folder & log list's WindowsPath object creation
+    def input_window(self):
+        root = Tk()
+        root.update()
+        path = askdirectory(title='Select the root folder:')
+        root.destroy()
+        return path
     
-def agr_style(feature):
-    agr_style = simplekml.Style()
-    agr_style.linestyle.color = simplekml.Color.red
-    agr_style.linestyle.width = 2.0
-    feature.style = agr_style
-
-def create_linestring(log_path, kml, container_index):
-    ls = kml.containers[container_index].newlinestring(name = log_path.name)
-    coords_list = []
-    for index, row in cam_df.iterrows():
-        coords_list.append((row.Lng, row.Lat))
-    ls.coords = coords_list
-    return ls
+    def create_log_path (self, root_path):
+        log_list = list(pathlib.Path(root_path).glob(r"**\**\*.BIN"))
+        return log_list   
+    
+    #data modeling
+    def create_csv(self, log_path):
+        types = ["CAM", "EV", "BAT", "TERR", "RCOU"]
+        log = log_path.as_posix()
+        path = log_path.parent
+        for t in types:    
+            mycmd = "mavlogdump.py --planner --format csv --types " + t + " " + str(log) + " > " + str(path) + "/" + t + ".csv"
+            os.system(mycmd)
+    
+    def create_df(self, log_path, csv_name):
+        global file, csv_file
+        file = csv_name + ".csv"
+        csv_file = os.path.join(log_path.parent, file)
+        df = pd.read_csv(csv_file, index_col='timestamp')
+        df.index = pd.to_datetime(df.index, unit='s', origin='unix')
+        os.remove(csv_file)
+        return df
+    
+    #creating kml
+    def create_kml(self, kml_name):
+        kml_name = simplekml.Kml()
+        kml_name.newfolder(name='RGB')
+        kml_name.newfolder(name='AGR')
+        return kml_name
+    
+    def rgb_style(self, feature):
+        rgb_style = simplekml.Style()
+        rgb_style.linestyle.color = simplekml.Color.whitesmoke
+        rgb_style.linestyle.width = 2.0
+        feature.style = rgb_style
+        
+    def agr_style(self, feature):
+        agr_style = simplekml.Style()
+        agr_style.linestyle.color = simplekml.Color.red
+        agr_style.linestyle.width = 2.0
+        feature.style = agr_style
+    
+    def create_linestring(self, log_path, kml, container_index):
+        ls = kml.containers[container_index].newlinestring(name = log_path.name)
+        coords_list = []
+        for index, row in cam_df.iterrows():
+            coords_list.append((row.Lng, row.Lat))
+        ls.coords = coords_list
+        return ls
+    
+    def create_balloon_report(self, feature):
+        flight_time = ev_df.index[-1] - ev_df.index[0]
+        #errors = Errors()    
+        feature.balloonstyle.text = "Flight time: " + str(flight_time.components.minutes) + "m " + str(flight_time.components.seconds) + "s \n" +\
+                                    "Bat. consumed: " + str(round(bat_df.CurrTot[-1])) + " mAh \n" +\
+                                    "\n" +\
+                                    "Motors: " + report.motors_status + report.motors_feedback #"\n" #+\
+                                    #"Radio FS: " + errors.gcs_count() + "\n" +\
+                                    #"EKF variance: " + errors.ekf_count() + "\n" +\
+                                    #"GPS glitch: " + errors.gps_glitch_count()                               
+    def run(self):
+        global path, log_list, flights_kml
+        path = self.input_window()    
+        log_list = self.create_log_path(path)     
+        flights_kml = self.create_kml('flights_kml')    
+        for i in tqdm(log_list):
+            self.create_csv(i)
+            global cam_df, ev_df, bat_df, terr_df, rcou_df, report
+            cam_df = self.create_df(i, "CAM")
+            ev_df = self.create_df(i, "EV")
+            bat_df = self.create_df(i, "BAT")
+            terr_df = self.create_df(i, "TERR")
+            rcou_df = self.create_df(i, "RCOU")
+            report = HealthTests()
+            report.run()
+            if terr_df['CHeight'].median() < 105:
+                rgb = self.create_linestring(i, flights_kml, 0)
+                self.rgb_style(rgb)
+                self.create_balloon_report(rgb)
+            elif terr_df['CHeight'].median() > 105:
+                agr = self.create_linestring(i, flights_kml, 1)
+                self.agr_style(agr)
+                self.create_balloon_report(agr)
+            else:
+                print("Invalid folder name.")
+        flights_kml.save(path + '/flights.kml')
 
 #health tests
 class HealthTests:
@@ -100,48 +136,11 @@ class HealthTests:
             self.motors_feedback = ' - balanced'
     
     def run(self):
-        self.motor_test()
-        
-def create_balloon_report(feature):
-    flight_time = ev_df.index[-1] - ev_df.index[0]
-    #errors = Errors()    
-    feature.balloonstyle.text = "Flight time: " + str(flight_time.components.minutes) + "m " + str(flight_time.components.seconds) + "s \n" +\
-                                "Bat. consumed: " + str(round(bat_df.CurrTot[-1])) + " mAh \n" +\
-                                "\n" +\
-                                "Motors: " + report.motors_status + report.motors_feedback #"\n" #+\
-                                #"Radio FS: " + errors.gcs_count() + "\n" +\
-                                #"EKF variance: " + errors.ekf_count() + "\n" +\
-                                #"GPS glitch: " + errors.gps_glitch_count()
-##main function                               
-def day_checker():
-    global path, log_list, flights_kml
-    path = input_window()    
-    log_list = create_log_path(path)     
-    flights_kml = create_kml('flights_kml')    
-    for i in tqdm(log_list):
-        create_csv(i)
-        global cam_df, ev_df, bat_df, terr_df, rcou_df, report
-        cam_df = create_df(i, "CAM")
-        ev_df = create_df(i, "EV")
-        bat_df = create_df(i, "BAT")
-        terr_df = create_df(i, "TERR")
-        rcou_df = create_df(i, "RCOU")
-        report = HealthTests()
-        report.run()
-        if terr_df['CHeight'].median() < 105:
-            rgb = create_linestring(i, flights_kml, 0)
-            rgb_style(rgb)
-            create_balloon_report(rgb)
-        elif terr_df['CHeight'].median() > 105:
-            agr = create_linestring(i, flights_kml, 1)
-            agr_style(agr)
-            create_balloon_report(agr)
-        else:
-            print("Invalid folder name.")
-    flights_kml.save(path + '/flights.kml')
+        self.motor_test()    
 
-##running main function when not being imported
+##running when not being imported
 if __name__ == "__main__":
-    day_checker()
+    dc = DayChecker()
+    dc.run()
     
 
