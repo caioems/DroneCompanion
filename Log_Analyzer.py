@@ -2,7 +2,7 @@
 """
 Created on Thu Apr 21 17:17:20 2022
 
-Script designed to take useful information from BIN dataflash logs and
+Script designed to take useful information from ArduCopter dataflash logs and
 present it on a KML file.
 
 @author: [t2]caiera
@@ -17,6 +17,7 @@ from tkinter import Tk
 from tkinter.filedialog import askdirectory
 from tqdm import tqdm
 
+##MAIN CLASS
 class DayChecker:
     #user input for root folder & log list's WindowsPath object creation
     def input_window(self):
@@ -84,11 +85,12 @@ class DayChecker:
                                     "Motors: " + report.motors_status + report.motors_feedback #"\n" #+\
                                     #"Radio FS: " + errors.gcs_count() + "\n" +\
                                     #"EKF variance: " + errors.ekf_count() + "\n" +\
-                                    #"GPS glitch: " + errors.gps_glitch_count()                               
+                                    #"GPS glitch: " + errors.gps_glitch_count() 
+    #running                                
     def run(self):
         global path, log_list, flights_kml
-        path = self.input_window()    
-        log_list = self.create_log_path(path)     
+        path = self.input_window()
+        log_list = self.create_log_path(path)
         flights_kml = self.create_kml('flights_kml')    
         for i in tqdm(log_list):
             self.create_csv(i)
@@ -112,7 +114,7 @@ class DayChecker:
                 print("Invalid folder name.")
         flights_kml.save(path + '/flights.kml')
 
-#health tests
+##HEALTH TESTS OBJECT
 class HealthTests:
     def __init__(self):
         self.motors_status = 'UNKNOWN'
