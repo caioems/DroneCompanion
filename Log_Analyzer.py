@@ -12,7 +12,7 @@ import pathlib
 import os
 import pandas as pd
 import simplekml
-from statistics import median
+from statistics import mean, median
 from tkinter import Tk
 from tkinter.filedialog import askdirectory
 from tqdm import tqdm
@@ -32,7 +32,7 @@ def create_log_path (root_path):
 
 #data modeling
 def create_csv(log_path):
-    types = ["CAM", "EV", "BAT", "TERR"]
+    types = ["CAM", "EV", "BAT", "TERR", "RCOU"]
     log = log_path.as_posix()
     path = log_path.parent
     for t in types:    
@@ -61,7 +61,7 @@ def rgb_style(feature):
     rgb_style.linestyle.color = simplekml.Color.whitesmoke
     rgb_style.linestyle.width = 2.0
     feature.style = rgb_style
-
+    
 def agr_style(feature):
     agr_style = simplekml.Style()
     agr_style.linestyle.color = simplekml.Color.red
@@ -76,39 +76,36 @@ def create_linestring(log_path, kml, container_index):
     ls.coords = coords_list
     return ls
 
-#report creation
-# class Errors:
-#     def __init__(self):
-#         self.ekf = "0"
-#         self.gcs = "0"
-#         self.gps = "0"
+#health tests
+class HealthTests:
+    def __init__(self):
+        self.motors_status = 'UNKNOWN'
+        self.motors_feedback = ''
         
-#     def gcs_count(self):
-#         try:
-#             self.gcs = str(err_df.Subsys.value_counts()[5])
-#             return self.gcs
-#         except:
-#             return self.gcs
-#     def ekf_count(self):
-#         try:
-#             self.ekf = str(err_df.Subsys.value_counts()[17])
-#             return self.ekf
-#         except:
-#             return self.ekf
-#     def gps_glitch_count(self):
-#         try:
-#             self.gps = str(err_df.Subsys.value_counts()[11])
-#             return self.gps
-#         except:
-#             return self.gps
+    def motor_test(self):
+        pwm_df = pd.DataFrame({'A':[mean(rcou_df.C1), max(rcou_df.C1)],
+                               'B':[mean(rcou_df.C2), max(rcou_df.C2)], 
+                               'C':[mean(rcou_df.C3), max(rcou_df.C3)],
+                               'D':[mean(rcou_df.C4), max(rcou_df.C4)]}).T
+        pwm_df.columns = ["mean", "max"]
+        
+        if (max(pwm_df["mean"]) - min(pwm_df["mean"])) > 75:
+            self.motors_status = 'WARNING'
+            self.motors_feedback = ' - motor ' + pwm_df.index[pwm_df['max'] == max(pwm_df["max"])][0]
+        elif (max(pwm_df["mean"]) - min(pwm_df["mean"])) > 150:
+            self.motors_status = 'FAIL'
+            self.motors_feedback = ''
+        else:
+            self.motors_status = 'OK'
+            self.motors_feedback = ' - balanced'
         
 def create_balloon_report(feature):
     flight_time = ev_df.index[-1] - ev_df.index[0]
     #errors = Errors()    
     feature.balloonstyle.text = "Flight time: " + str(flight_time.components.minutes) + "m " + str(flight_time.components.seconds) + "s \n" +\
-                                "Bat. consumed: " + str(round(bat_df.CurrTot[-1])) + " mAh \n" #+\
-                                #"\n" +\
-                                #"HDop: " + str(median(gps_df.HDop)) + "\n" #+\
+                                "Bat. consumed: " + str(round(bat_df.CurrTot[-1])) + " mAh \n" +\
+                                "\n" +\
+                                "Motors: " + report.motors_status + report.motors_feedback #"\n" #+\
                                 #"Radio FS: " + errors.gcs_count() + "\n" +\
                                 #"EKF variance: " + errors.ekf_count() + "\n" +\
                                 #"GPS glitch: " + errors.gps_glitch_count()
@@ -120,14 +117,17 @@ def day_checker():
     flights_kml = create_kml('flights_kml')    
     for i in tqdm(log_list):
         create_csv(i)
-        global cam_df, ev_df, bat_df, terr_df
+        global cam_df, ev_df, bat_df, terr_df, rcou_df, report
         cam_df = create_df(i, "CAM")
         ev_df = create_df(i, "EV")
         bat_df = create_df(i, "BAT")
         terr_df = create_df(i, "TERR")
+        rcou_df = create_df(i, "RCOU")
+        report = HealthTests()
+        report.motor_test()
         if terr_df['CHeight'].median() < 105:
             rgb = create_linestring(i, flights_kml, 0)
-            rgb_style(rgb) 
+            rgb_style(rgb)
             create_balloon_report(rgb)
         elif terr_df['CHeight'].median() > 105:
             agr = create_linestring(i, flights_kml, 1)
