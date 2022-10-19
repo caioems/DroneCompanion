@@ -4,14 +4,19 @@ Created on Wed Jun 22 15:22:55 2022
 
 @author: [t2]caiera
 """
-from log_analyzer import *
+
 from tkinter import *
 from tkinter import ttk
+from log_analyzer import *
 import sys
 import subprocess
 import threading 
 
 #Functions
+def dc_command():
+    dc = DayChecker()
+    dc.run()
+    
 def bot_command():
     import gtbot
     
@@ -51,7 +56,7 @@ class ToolBox:
         mainframe.grid(column=0, row=0, sticky=(N, W, E, S))
         mainframe['padding'] = 5        
         
-        dc_button = ttk.Button(mainframe, text="Day Checker", command=day_checker).grid(column=0, row=0)
+        dc_button = ttk.Button(mainframe, text="Day Checker", command=dc_command).grid(column=0, row=0)
         gt_button = ttk.Button(mainframe, text="Geotag Bot", command=bot_command).grid(column=1, row=0)
 
         text = Text(main_window)
