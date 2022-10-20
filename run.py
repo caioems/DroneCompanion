@@ -1,20 +1,17 @@
 # -*- coding: utf-8 -*-
-"""
-Created on Thu Apr 21 17:17:20 2022
+# """
+# Created on Thu Apr 21 17:17:20 2022
 
-Script designed to take useful information from ArduCopter dataflash logs and
-present it on a KML file.
+# Script designed to take useful information from ArduCopter dataflash logs and
+# present it on a KML file.
 
-@author: [t2]caiera
-"""
+# @author: [t2]caiera
+# """
 
 import pathlib
 import os
 import pandas as pd
 import simplekml
-from sqlalchemy import create_engine, Column, Integer, Numeric, String
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
 from statistics import mean, median
 from tkinter import Tk
 from tkinter.filedialog import askdirectory
@@ -168,18 +165,7 @@ class HealthTests:
     
     def run(self):
         self.motor_test()
-        self.vibe_test()
-        
-class DataHandler():
-    def __init__(self, db):
-        self.engine = create_engine("sqlite:///./" + db)
-        self.base = declarative_base()
-        Session = sessionmaker(bind=self.engine)
-        self.session = Session
-    
-    #TODO: declarative base
-    #TODO: crud
-    
+        self.vibe_test()    
 
 ##running when not being imported
 if __name__ == "__main__":
