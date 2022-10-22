@@ -15,7 +15,7 @@ class LogList:
       return path
     
     def create_log_list (self, root_folder):
-      log_list = list(pathlib.Path(root_folder).glob(r"**\**\*.BIN"))
+      log_list = list(pathlib.Path(root_folder).glob(r"**\*.BIN"))
       return log_list 
     
     

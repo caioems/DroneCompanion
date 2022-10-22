@@ -5,7 +5,7 @@ import simplekml
 
 class DayChecker:    
     def create_csv(self, log_path):
-        types = ["CAM", "EV", "BAT", "TERR", "RCOU", "VIBE"]
+        types = ["CAM", "EV", "BAT", "RCOU", "VIBE"]
         log = log_path.as_posix()
         path = log_path.parent
         for t in types:    

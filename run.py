@@ -25,7 +25,8 @@ class PipeLine:
         self.__kml.newfolder(name='RGB')
         self.__kml.newfolder(name='AGR')
         return self.__kml       
-     
+    
+    #TODO: armazenar timestamps como numeric ou string  
     def run(self):
         for i in tqdm(self.__log_list):
             dc = DayChecker()
@@ -33,18 +34,19 @@ class PipeLine:
             dc.cam_df = dc.create_df(i, "CAM")
             dc.ev_df = dc.create_df(i, "EV")
             dc.bat_df = dc.create_df(i, "BAT")
-            dc.terr_df = dc.create_df(i, "TERR")
             dc.rcou_df = dc.create_df(i, "RCOU")
             dc.vibe_df = dc.create_df(i, "VIBE")
+            
             dc.report = HealthTests(dc.rcou_df, dc.vibe_df)
             dc.report.run()
-            self.dc = dc
+            #self.dc = dc
             
-            if dc.terr_df['CHeight'].median() < 105:
+            flight_alt = dc.cam_df['RelAlt'].mean()
+            if flight_alt < 105:
                 rgb = dc.create_linestring(i, self.__kml, 0)
                 dc.rgb_style(rgb)
                 dc.create_balloon_report(rgb)
-            elif dc.terr_df['CHeight'].median() > 105:
+            elif flight_alt > 105:
                 agr = dc.create_linestring(i, self.__kml, 1)
                 dc.agr_style(agr)
                 dc.create_balloon_report(agr)
