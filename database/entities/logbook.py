@@ -1,7 +1,7 @@
 from configs.base import Base
 from sqlalchemy import Column, Integer, Numeric, String
 
-class Logbook(Base):
+class Report(Base):
     #declarative base
     __tablename__='logbook'
     

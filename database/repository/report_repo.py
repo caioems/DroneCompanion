@@ -1,7 +1,9 @@
-from configs.connection import DataHandler
-from entities.logbook import Report
+from G2Companion.database.configs.connection import DataHandler
+from G2Companion.database.entities.report import Report
 
-class LbRepo:
+
+
+class RpRepo:
     def select(self):
         with DataHandler() as db:
             try:
@@ -11,16 +13,22 @@ class LbRepo:
                 db.session.rollback()
                 raise exception
                     
-    def insert(self, vbt, vat, aat):
+    def insert(self, motors_status, motors_feedback, imu_status, imu_feedback):
         with DataHandler() as db:
             try:
-                data_insert = Report(vbt=vbt, vat=vat, aat=aat)
+                #TODO: Add unique field for timestamps
+                data_insert = Report(
+                    motor_status=motors_status, 
+                    motor_feedback=motors_feedback, 
+                    imu_status=imu_status, 
+                    imu_feedback=imu_feedback
+                    )
                 db.session.add(data_insert)
                 db.session.commit()
             except Exception as exception:
                 db.session.rollback()
                 raise exception
-            
+    #TODO: format following considering the new entities        
     def delete(self, vbt):
         with DataHandler() as db:
             try:

@@ -9,9 +9,7 @@
 # """
 
 import simplekml
-import concurrent.futures
-import os
-#from database.repository.report_repo import RpRepo
+from multiprocessing import Pool
 from internal.loglist import LogList
 from internal.daychecker import DayChecker
 from tests.healthtests import HealthTests
@@ -31,9 +29,8 @@ class PipeLine:
         self._kml.newfolder(name='AGR')
         return self._kml       
     
-    #TODO: store timestamps as string
+    #TODO: armazenar timestamps como numeric ou string
 def run(flight_log):
-    global dc
     dc = DayChecker()
     dc.create_csv(flight_log)
 
@@ -46,10 +43,8 @@ def run(flight_log):
 
     dc.report = HealthTests(dc.rcou_df, dc.vibe_df)
     dc.report.run()
-    
-    #Storing data into db
-    #repo = RpRepo()
-    #repo.insert(dc.report.motors_status, dc.report.motors_feedback, dc.report.imu_status, dc.report.imu_feedback)  
+
+    #TODO: transferir dados do dc.report para tabela sql
 
     flight_alt = dc.terr_df['CHeight'].median()
     if flight_alt < 105:
@@ -67,11 +62,8 @@ def run(flight_log):
 ##running when not being imported
 if __name__ == "__main__":
     ppl = PipeLine()        
-    #[run(log) for log in tqdm(ppl._log_list)]
-    with concurrent.futures.ThreadPoolExecutor(max_workers=int(os.cpu_count()/3)) as executor:
-        results = list(tqdm(executor.map(run, ppl._log_list), total=len(ppl._log_list)))
-        results
-        
+    [run(log) for log in tqdm(ppl._log_list)]    
+    #list(Pool().imap(run, ppl._root.log_list))
     ppl._kml.save(f'{ppl._root.root_folder}/flights.kml')
     print('Done.')
         

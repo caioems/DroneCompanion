@@ -18,4 +18,7 @@ class LogList:
       log_list = list(pathlib.Path(root_folder).glob(r"**\*.BIN"))
       return log_list 
     
+# a = LogList()
+# print(a)
+    
     
