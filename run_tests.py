@@ -8,8 +8,15 @@
 # @author: [t2]caiera
 # """
 
+#TODO: create a package auto update function
+#TODO: create new table with 'timestamps' and 'drone_uid' for motor data     
+#TODO: create dashboard for local db
+#TODO: create a windows service for syncing data with cloud db(API)
+
 import simplekml
-from multiprocessing import Pool
+import concurrent.futures
+import os
+#from database.repository.report_repo import RpRepo
 from internal.loglist import LogList
 from internal.daychecker import DayChecker
 from tests.healthtests import HealthTests
@@ -29,43 +36,48 @@ class PipeLine:
         self._kml.newfolder(name='AGR')
         return self._kml       
     
-    #TODO: armazenar timestamps como numeric ou string
-def run(flight_log):
-    dc = DayChecker()
-    dc.create_csv(flight_log)
+    #TODO: store timestamps as string
+    def run(self, flight_log):
+        self.dc = DayChecker()
+        self.dc.create_csv(flight_log)    
 
-    dc.cam_df = dc.create_df(flight_log, "CAM")
-    dc.ev_df = dc.create_df(flight_log, "EV")
-    dc.bat_df = dc.create_df(flight_log, "BAT")
-    dc.rcou_df = dc.create_df(flight_log, "RCOU")
-    dc.terr_df = dc.create_df(flight_log, "TERR")
-    dc.vibe_df = dc.create_df(flight_log, "VIBE")
+        self.dc.cam_df = self.dc.create_df(flight_log, "CAM")
+        self.dc.ev_df = self.dc.create_df(flight_log, "EV")
+        self.dc.bat_df = self.dc.create_df(flight_log, "BAT")
+        self.dc.rcou_df = self.dc.create_df(flight_log, "RCOU")
+        self.dc.terr_df = self.dc.create_df(flight_log, "TERR")
+        self.dc.vibe_df = self.dc.create_df(flight_log, "VIBE")
 
-    dc.report = HealthTests(dc.rcou_df, dc.vibe_df)
-    dc.report.run()
+        self.flight_timestamp = str(self.dc.ev_df.index[0].timestamp())
+        self.dc.report = HealthTests(self.dc.rcou_df, self.dc.vibe_df)
+        self.dc.report.run()
+        
+        #Storing data into db
+        #repo = RpRepo()
+        #repo.insert(dc.report.motors_status, dc.report.motors_feedback, dc.report.imu_status, dc.report.imu_feedback)  
 
-    #TODO: transferir dados do dc.report para tabela sql
-
-    flight_alt = dc.terr_df['CHeight'].median()
-    if flight_alt < 105:
-        rgb = dc.create_linestring(flight_log, ppl._kml, 0)
-        dc.rgb_style(rgb)
-        dc.create_balloon_report(rgb)
-    elif flight_alt > 105:
-        agr = dc.create_linestring(flight_log, ppl._kml, 1)
-        dc.agr_style(agr)
-        dc.create_balloon_report(agr)
-    else:
-        print("Invalid folder name.")           
+        flight_alt = self.dc.terr_df['CHeight'].median()
+        if flight_alt < 105:
+            rgb = self.dc.create_linestring(flight_log, ppl._kml, 0)
+            self.dc.rgb_style(rgb)
+            self.dc.create_balloon_report(rgb)
+        elif flight_alt > 105:
+            agr = self.dc.create_linestring(flight_log, ppl._kml, 1)
+            self.dc.agr_style(agr)
+            self.dc.create_balloon_report(agr)
+        else:
+            print("Invalid folder name.")          
         
 
 ##running when not being imported
 if __name__ == "__main__":
-    ppl = PipeLine()        
-    [run(log) for log in tqdm(ppl._log_list)]    
-    #list(Pool().imap(run, ppl._root.log_list))
-    ppl._kml.save(f'{ppl._root.root_folder}/flights.kml')
-    print('Done.')
-        
+    ppl = PipeLine()
+    #max_workers alt formula = int(os.cpu_count()/3)
+    with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
+        results = list(tqdm(executor.map(ppl.run, ppl._log_list), total=len(ppl._log_list)))
+        results
     
-
+    kml_path = f'{ppl._root.root_folder}/flights.kml'     
+    ppl._kml.save(kml_path)
+    print('Done.')
+    os.startfile(kml_path)

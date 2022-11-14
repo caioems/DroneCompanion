@@ -44,17 +44,21 @@ class DayChecker:
         return ls
     
     def create_balloon_report(self, feature):
-        flight_time = self.ev_df.index[-1] - self.ev_df.index[0]
+        flight_data = self.ev_df.index[-0]
+        flight_time = self.ev_df.index[-1] - flight_data
+        #TODO: store flight timestamp as text
+        self.flight_timestamp = str(flight_data.timestamp())
         base_path = Path(__file__).parent
         template_path = (base_path / "../internal/motororder-quad-x-2d.png").resolve()
         
-        #TODO: convert html to file instead of raw coding          
-        feature.balloonstyle.text = f"""<html>	
+        #TODO: convert html to file instead of raw coding
+        #TODO: balloon being displayed as default          
+        feature.balloonstyle.text = f"""<html>
                                             <table align="center" border="0" cellpadding="0" cellspacing="0" style="border-collapse:collapse; height:270px; width:400px">
                                                 <tbody>
                                                     <tr>
                                                         <td>
-                                                        <table align="center" border="0" cellpadding="0" cellspacing="0" style="border-collapse:collapse; height:100%; margin-left:auto; margin-right:auto; width:100%">
+                                                        <table align="center" border="0" cellpadding="0" cellspacing="0" style="border-collapse:collapse; height:100%; margin-left:auto; margin-right:auto; opacity:0.95; width:100%">
                                                             <tbody>
                                                                 <tr>
                                                                     <td style="height:90px; text-align:center; vertical-align:middle; width:50%">
