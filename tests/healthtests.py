@@ -1,6 +1,7 @@
 import pandas as pd
 from statistics import mean
 
+#TODO: motor efficiency = Thrust (grams) x Power (watts)
 class HealthTests:
     def __init__(self, rcou_df, vibe_df):
         self._rcou_df = rcou_df
@@ -13,14 +14,14 @@ class HealthTests:
         self.gps_feedback = ''
         
     def __repr__(self):
-        return (
-            f"motors_status = {self.motors_status}\n"
-            f"motors_feedback = {self.motors_feedback}\n"
-            f"imu_status = {self.imu_status}\n"
-            f"imu_feedback = {self.imu_feedback}\n"
-            f"gps_status = {self.gps_status}\n"
-            f"gps_feedback = {self.gps_feedback}"
-            )
+        return (f"""
+                motors_status = {self.motors_status}
+                motors_feedback = {self.motors_feedback}
+                imu_status = {self.imu_status}
+                imu_feedback = {self.imu_feedback}
+                gps_status = {self.gps_status}
+                gps_feedback = {self.gps_feedback}"""
+                )
         
         
     def motor_test(self):

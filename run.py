@@ -8,18 +8,17 @@
 # @author: [t2]caiera
 # """
 
-#TODO: create a package auto update function
-#TODO: create new table with 'timestamps' and 'drone_uid' for motor data     
-#TODO: create dashboard for local db
+#TODO: create a auto update function
 #TODO: create a windows service for syncing data with cloud db(API)
 
 import simplekml
-import concurrent.futures
 import os
 #from database.repository.report_repo import RpRepo
+from database.repository.motors_repo import MtRepo
 from internal.loglist import LogList
 from internal.daychecker import DayChecker
 from tests.healthtests import HealthTests
+from concurrent.futures import ThreadPoolExecutor
 from tqdm import tqdm
 
 
@@ -34,29 +33,35 @@ class PipeLine:
         self._kml = simplekml.Kml(name=kml_name)
         self._kml.newfolder(name='RGB')
         self._kml.newfolder(name='AGR')
-        return self._kml       
+        return self._kml     
     
-    #TODO: store timestamps as string
     def run(self, flight_log):
         self.dc = DayChecker()
-        self.dc.create_csv(flight_log)    
+        self.dc.create_csv(flight_log)
+        self.dc.create_df_dict(flight_log)         
+        self.dc.delete_csv(flight_log)
 
-        self.dc.cam_df = self.dc.create_df(flight_log, "CAM")
-        self.dc.ev_df = self.dc.create_df(flight_log, "EV")
-        self.dc.bat_df = self.dc.create_df(flight_log, "BAT")
-        self.dc.rcou_df = self.dc.create_df(flight_log, "RCOU")
-        self.dc.terr_df = self.dc.create_df(flight_log, "TERR")
-        self.dc.vibe_df = self.dc.create_df(flight_log, "VIBE")
-
-        self.flight_timestamp = str(self.dc.ev_df.index[0].timestamp())
-        self.dc.report = HealthTests(self.dc.rcou_df, self.dc.vibe_df)
+        self.flight_timestamp = str(self.dc.df_dict['EV'].index[0].timestamp())
+        #TODO: fix a bug where sometimes the version is imported instead of serial number
+        self.drone_uid = self.dc.df_dict['MSG'].Message[2][9:].replace(" ", "")
+        #TODO: create a self.distance containing total distance travelled
+        self.dc.report = HealthTests(self.dc.df_dict['RCOU'], self.dc.df_dict['VIBE'])
         self.dc.report.run()
         
         #Storing data into db
-        #repo = RpRepo()
-        #repo.insert(dc.report.motors_status, dc.report.motors_feedback, dc.report.imu_status, dc.report.imu_feedback)  
+        #dc_repo = RpRepo()
+        #dc_repo.insert(dc.report.motors_status, dc.report.motors_feedback, dc.report.imu_status, dc.report.imu_feedback)
+        
+        m_repo = MtRepo()
+        m_repo.insert(self.flight_timestamp, 
+                      self.drone_uid,
+                      self.dc.report.motors_pwm_list[0], 
+                      self.dc.report.motors_pwm_list[1], 
+                      self.dc.report.motors_pwm_list[2], 
+                      self.dc.report.motors_pwm_list[3]
+                      )  
 
-        flight_alt = self.dc.terr_df['CHeight'].median()
+        flight_alt = self.dc.df_dict['TERR']['CHeight'].median()
         if flight_alt < 105:
             rgb = self.dc.create_linestring(flight_log, ppl._kml, 0)
             self.dc.rgb_style(rgb)
@@ -73,9 +78,12 @@ class PipeLine:
 if __name__ == "__main__":
     ppl = PipeLine()
     #max_workers alt formula = int(os.cpu_count()/3)
-    with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
-        results = list(tqdm(executor.map(ppl.run, ppl._log_list), total=len(ppl._log_list)))
-        results
+    
+    # l = len(ppl._log_list)
+    # with ThreadPoolExecutor(max_workers=l) as executor:
+    #     results = list(tqdm(executor.map(ppl.run, ppl._log_list), total=l))
+    
+    results = list(tqdm(map(ppl.run, ppl._log_list), total=len(ppl._log_list)))
     
     kml_path = f'{ppl._root.root_folder}/flights.kml'     
     ppl._kml.save(kml_path)

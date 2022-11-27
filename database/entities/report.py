@@ -1,4 +1,4 @@
-from G2Companion.database.configs.base import Base
+from database.configs.base import Base
 from sqlalchemy import Column, Integer, Text
 
 class Report(Base):
