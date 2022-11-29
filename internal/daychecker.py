@@ -4,6 +4,7 @@ import simplekml
 
 from pathlib import Path
 from threading import Lock
+from concurrent.futures import ThreadPoolExecutor
 
 #class containing functions for the data extraction/modeling and kml customization 
 class DayChecker:
@@ -12,15 +13,18 @@ class DayChecker:
         self.types = ["CAM", "EV", "BAT", "MSG", "RCOU", "TERR", "VIBE"]
         log = log_path.as_posix()
         path = log_path.parent
-        for t in self.types:            
-            mycmd = f"mavlogdump.py --planner --format csv --types {t} {str(log)} > {str(path)}/{t}.csv"
-            os.system(mycmd)
+        
+        def mycmd(type):
+            os.system(f"mavlogdump.py --planner --format csv --types {type} {str(log)} > {str(path)}/{type}.csv")
+        
+        with ThreadPoolExecutor() as executor:    #max_workers=len(self.types)        
+            executor.map(mycmd, self.types)
     
     def create_df(self, log_path, csv_name):
         csv_file = os.path.join(log_path.parent, csv_name + ".csv")
         with Lock():
             with open(csv_file, "r") as csv:
-                df = pd.read_csv(csv, index_col='timestamp', on_bad_lines='skip')
+                df = pd.read_csv(csv, engine='c', on_bad_lines = 'skip', index_col='timestamp')
                 df.index = pd.to_datetime(df.index, unit='s', origin='unix')
         return df
     

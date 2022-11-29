@@ -18,7 +18,6 @@ from database.repository.motors_repo import MtRepo
 from internal.loglist import LogList
 from internal.daychecker import DayChecker
 from tests.healthtests import HealthTests
-from concurrent.futures import ThreadPoolExecutor
 from tqdm import tqdm
 
 
@@ -77,13 +76,13 @@ class PipeLine:
 ##running when not being imported
 if __name__ == "__main__":
     ppl = PipeLine()
-    #max_workers alt formula = int(os.cpu_count()/3)
-    
-    # l = len(ppl._log_list)
-    # with ThreadPoolExecutor(max_workers=l) as executor:
-    #     results = list(tqdm(executor.map(ppl.run, ppl._log_list), total=l))
-    
+       
+    ## map method
     results = list(tqdm(map(ppl.run, ppl._log_list), total=len(ppl._log_list)))
+    
+    ## for loop method
+    # for log in tqdm(ppl._log_list):
+    #     ppl.run(log) 
     
     kml_path = f'{ppl._root.root_folder}/flights.kml'     
     ppl._kml.save(kml_path)
