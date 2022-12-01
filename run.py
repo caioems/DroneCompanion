@@ -25,7 +25,7 @@ class PipeLine:
     def __init__(self):
         self._root = LogList()
         self._log_list = self._root.log_list
-        self._kml = self.kml_container('flights_kml')
+        self._kml = self.kml_container('flights')
         self.dc = None
         
     def kml_container(self, kml_name):
@@ -69,9 +69,6 @@ class PipeLine:
             agr = self.dc.create_linestring(flight_log, ppl._kml, 1)
             self.dc.agr_style(agr)
             self.dc.create_balloon_report(agr)
-        else:
-            print("Invalid folder name.")          
-        
 
 ##running when not being imported
 if __name__ == "__main__":

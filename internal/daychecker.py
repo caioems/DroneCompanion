@@ -1,9 +1,11 @@
 import os
+import numpy as np
 import pandas as pd
 import simplekml
 
 from pathlib import Path
 from threading import Lock
+from internal.concave_hull import concaveHull
 from concurrent.futures import ThreadPoolExecutor
 
 #class containing functions for the data extraction/modeling and kml customization 
@@ -42,7 +44,7 @@ class DayChecker:
     def rgb_style(self, feature):
         rgb_style = simplekml.Style()
         rgb_style.linestyle.color = simplekml.Color.whitesmoke
-        rgb_style.linestyle.width = 2.0
+        rgb_style.linestyle.width = 3.0
         feature.style = rgb_style
         
     def agr_style(self, feature):
@@ -52,12 +54,21 @@ class DayChecker:
         feature.style = agr_style
     
     def create_linestring(self, log_path, kml, container_index):
-        ls = kml.containers[container_index].newlinestring(name = log_path.name)
+        ls = kml.containers[container_index].newlinestring(name=log_path.name)
         coords_list = []
         for index, row in self.df_dict['CAM'].iterrows():
             coords_list.append((row.Lng, row.Lat))
         ls.coords = coords_list
         return ls
+    
+    def create_polygon(self, log_path, kml, container_index):
+        poly = kml.containers[container_index].newpolygon(name=log_path.name)
+        coords_list = []
+        for index, row in self.df_dict['CAM'].iterrows():
+            coords_list.append((row.Lng, row.Lat))
+        coords_list = np.array(coords_list)       
+        poly.outerboundaryis = concaveHull(coords_list, 3)
+        return poly
     
     def create_balloon_report(self, feature):
         flight_data = self.df_dict['EV'].index[0]
