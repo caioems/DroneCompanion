@@ -1,7 +1,6 @@
-from G2Companion.database.configs.connection import DataHandler
-from G2Companion.database.entities.report import Report
-
-
+from database.configs.connection import DataHandler
+from database.entities.report import Report
+from sqlalchemy.exc import IntegrityError
 
 class RpRepo:
     def select(self):
@@ -13,17 +12,24 @@ class RpRepo:
                 db.session.rollback()
                 raise exception
                     
-    def insert(self, motors_status, motors_feedback, imu_status, imu_feedback):
+    def insert(self, timestamp, drone_uid, motors_status, motors_feedback, imu_status, imu_feedback, vcc_status, vcc_mean, vcc_std):
         with DataHandler() as db:
             try:
                 data_insert = Report(
+                    timestamp=timestamp,
+                    drone_uid=drone_uid,
                     motor_status=motors_status, 
                     motor_feedback=motors_feedback, 
                     imu_status=imu_status, 
-                    imu_feedback=imu_feedback
+                    imu_feedback=imu_feedback,
+                    vcc_status=vcc_status,
+                    vcc_mean=vcc_mean,
+                    vcc_std=vcc_std
                     )
                 db.session.add(data_insert)
                 db.session.commit()
+            except IntegrityError:
+                pass
             except Exception as exception:
                 db.session.rollback()
                 raise exception

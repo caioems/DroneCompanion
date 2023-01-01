@@ -3,15 +3,19 @@ from statistics import mean
 
 #TODO: motor efficiency = Thrust (grams) x Power (watts)
 class HealthTests:
-    def __init__(self, rcou_df, vibe_df):
+    def __init__(self, rcou_df, vibe_df, powr_df):
         self._rcou_df = rcou_df
-        self._vibe_df = vibe_df 
+        self._vibe_df = vibe_df
+        self._powr_df = powr_df 
         self.motors_status = 'UNKNOWN'
         self.motors_feedback = ''
         self.imu_status = 'UNKNOWN'
         self.imu_feedback = ''
         self.gps_status = 'UNKNOWN'
         self.gps_feedback = ''
+        self.vcc_status = None
+        self.vcc_mean = None
+        self.vcc_std = None
         
     def __repr__(self):
         return (f"""
@@ -80,7 +84,8 @@ class HealthTests:
                     bad_pwm = max([self.motors_pwm_list[1], self.motors_pwm_list[3]])
                     bad_motor = str(self.motors_pwm_list.index(bad_pwm)+1)
                     self.motors_status = 'FAIL'
-                    self.motors_feedback = f'Big difference in frontal motors PWM\'s avg. Check motor {bad_motor}.'        
+                    self.motors_feedback = f"""Big difference in frontal motors PWM\'s avg. 
+                                                Check motor {bad_motor}."""        
                 
                 
             
@@ -94,13 +99,31 @@ class HealthTests:
         if any(v > 30 for v in vibes):
             max_vibes = str(round(max(vibes), 1))
             self.imu_status = 'WARN'
-            self.imu_feedback = f'several vibration ({max_vibes} m/s/s).'
+            self.imu_feedback = f'Several vibration ({max_vibes} m/s/s).'
         elif any(c > 0 for c in clips):
             max_clips = str(max(clips))
             self.imu_status = 'FAIL'
-            self.imu_feedback = f'accel was clipped {max_clips} times.'
+            self.imu_feedback = f'Accel was clipped {max_clips} times.'
+            
+    #TODO: Create def vcc_test (test if std is above 0.1v and 0.15v)
+    def vcc_test(self):
+        self.vcc_mean = round(self._powr_df.Vcc.mean(), 2)
+        self.vcc_std = round(self._powr_df.Vcc.std(), 2)
+        
+        self.vcc_status = 'OK'
+        self.vcc_feedback = f'No board voltage issues (avg: {self.vcc_mean}v, std: {self.vcc_std}v).'
+        
+        if self.vcc_std >= 0.1:
+            self.vcc_status = 'WARN'
+            self.vcc_feedback = f'Small voltage deviation ({self.vcc_std}v), please check the board.'
+            if self.vcc_std >= 0.15:
+                self.vcc_status = 'FAIL'
+                self.vcc_feedback = f'Big voltage deviation ({self.vcc_std}v), please check the board.'
+                
+            
     
     def run(self):
         self.motor_test()
         self.vibe_test()
+        self.vcc_test()
         return self    
