@@ -76,7 +76,7 @@ class DayChecker:
             else:
                 self.mdata_test['Copyright'] = ['FAIL', 'Check camera copyright.']
         
-            if re.match(r'^\d{7}$', self.mdata['Thumbnail Artist'].values):
+            if re.match(r'^\d{7}$', self.mdata['Image Artist'].values):
                 self.mdata_test['Artist'] = ['OK']
             else:
                 self.mdata_test['Artist'] = ['FAIL', 'Check camera artist.']    

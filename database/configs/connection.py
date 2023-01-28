@@ -3,7 +3,7 @@ from sqlalchemy.orm import sessionmaker
 
 class DataHandler:
     def __init__(self):
-        self.__connection_string = "sqlite:///C:\\Users\\T2\\Documents\\GitHub\\G2Companion\\database\\configs\\flights_master.db"
+        self.__connection_string = "sqlite:///C:\\Users\\Windows 10\\Documents\\GitHub\\DroneCompanion\\database\\\configs\\flights_master.db"
         self.__engine = self.__create_db_engine()
         self.session = None
         
