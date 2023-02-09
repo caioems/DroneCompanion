@@ -29,7 +29,6 @@ class DayChecker:
             with open(csv_file, "r") as csv:
                 df = pd.read_csv(csv, on_bad_lines='skip', index_col='timestamp')
                 df.index = pd.to_datetime(df.index, unit='s', origin='unix')
-                #ddf = dd.from_pandas(df, npartitions=1)
         return df
     
     def create_df_dict(self, flight_log):
@@ -42,9 +41,7 @@ class DayChecker:
         def delete_all_csv(type):
             csv_file = os.path.join(log_path.parent, f'{type}.csv')
             os.remove(csv_file)
-        # for t in self.types:
-        #     csv_file = os.path.join(log_path.parent, f'{t}.csv')
-        #     os.remove(csv_file)
+        
         with ThreadPoolExecutor() as executor:
             executor.map(delete_all_csv, self.types)  
     
