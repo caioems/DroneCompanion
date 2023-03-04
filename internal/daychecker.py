@@ -1,49 +1,57 @@
-import exifread, os, re
+import exifread, os, random, re, simplekml
 import numpy as np
 import pandas as pd
-import random
-import simplekml
 
 from pathlib import Path
-from threading import Lock
 from internal.concave_hull import concaveHull
 from concurrent.futures import ThreadPoolExecutor
 
 #class containing functions for the data extraction/modeling and kml customization 
 class DayChecker:
+    types = ["CAM", "EV", "BAT", "MSG", "POWR", "RCOU", "TERR", "VIBE"]
       
     def create_csv(self, log_path):
-        self.types = ["CAM", "EV", "BAT", "MSG", "POWR", "RCOU", "TERR", "VIBE"]
         log = log_path.as_posix()
         path = log_path.parent
         
         def mycmd(type):
-            os.system(f"mavlogdump.py --planner --format csv --types {type} {str(log)} > {str(path)}/{type}.csv")
+            mycmd = f"mavlogdump.py --planner --format csv --types {type} {str(log)} > {str(path)}/{type}.csv"
+            os.system(mycmd)
         
         with ThreadPoolExecutor() as executor:       
-            executor.map(mycmd, self.types)
+            executor.map(
+                mycmd, 
+                DayChecker.types
+                )
     
     def create_df(self, log_path, csv_name):
-        csv_file = os.path.join(log_path.parent, csv_name + ".csv")        
-        with Lock():
-            with open(csv_file, "r") as csv:
-                df = pd.read_csv(csv, on_bad_lines='skip', index_col='timestamp')
-                df.index = pd.to_datetime(df.index, unit='s', origin='unix')
+        csv_file = log_path.parent.joinpath(csv_name + ".csv")
+               
+        with open(csv_file, "r") as csv:
+            df = pd.read_csv(
+                csv, 
+                on_bad_lines='skip', 
+                index_col='timestamp'
+                )
+            df.index = pd.to_datetime(
+                df.index,
+                unit='s',
+                origin='unix'
+                )
         return df
     
     def create_df_dict(self, flight_log):
-        self.df_dict = {}
-        for i in self.types:
-            self.df_dict[i] = self.create_df(flight_log, i)            
-        return self.df_dict 
+        self.df_dict = {i: self.create_df(flight_log, i) for i in DayChecker.types}
+        return self.df_dict
+
     
     def delete_csv(self, log_path):
-        def delete_all_csv(type):
-            csv_file = os.path.join(log_path.parent, f'{type}.csv')
-            os.remove(csv_file)
-        
-        with ThreadPoolExecutor() as executor:
-            executor.map(delete_all_csv, self.types)  
+        for type in DayChecker.types:
+            csv_file = os.path.join(
+                log_path.parent, 
+                f'{type}.csv'
+                )            
+            os.remove(csv_file)   
     
     def metadata_test(self, log_path):        
         self.mdata_test = {}
@@ -90,9 +98,8 @@ class DayChecker:
     
     def create_linestring(self, log_path, kml, container_index):
         ls = kml.containers[container_index].newlinestring(name=log_path.name)
-        coords_list = []
-        for index, row in self.df_dict['CAM'].iterrows():
-            coords_list.append((row.Lng, row.Lat))
+        cam_df = self.df_dict['CAM']
+        coords_list = [(row.Lng, row.Lat) for index, row in cam_df.iterrows()]
         ls.coords = coords_list
         return ls
     
@@ -108,7 +115,7 @@ class DayChecker:
     def rgb_style(self, feature):
         rgb_style = simplekml.Style()
         try:
-            if 'OK' in self.mdata_test['Result'][0]:
+            if 'OK' in self.mdata_test['test'][0]:
                 rgb_style.linestyle.color = simplekml.Color.whitesmoke
                 rgb_style.linestyle.width = 3.0
                 feature.style = rgb_style
@@ -124,7 +131,7 @@ class DayChecker:
     def agr_style(self, feature):
         agr_style = simplekml.Style()
         try:
-            if 'OK' in self.mdata_test['Result'][0]:
+            if 'OK' in self.mdata_test['test'][0]:
                 agr_style.linestyle.color = simplekml.Color.red
                 agr_style.linestyle.width = 2.0
                 feature.style = agr_style

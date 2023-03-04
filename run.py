@@ -92,10 +92,6 @@ if __name__ == "__main__":
     ## map method
     results = list(tqdm(map(ppl.run, ppl._log_list), total=len(ppl._log_list)))
     
-    ## for loop method
-    # for log in tqdm(ppl._log_list):
-    #     ppl.run(log) 
-    
     ppl._kml.save(kml_path)
     print('Done.')
     os.startfile(kml_path)
