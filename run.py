@@ -5,7 +5,7 @@
 # Also known as "day checker", it's a tool designed to extract useful data from ArduCopter dataflash logs, to model this data and 
 # to store it in a sqlite database. It also generates a KML file for easy tracking of the analyzed logs.
 
-# @author: [t2]caiera
+# @author: caioems
 # """
 
 #TODO: create a auto update function
