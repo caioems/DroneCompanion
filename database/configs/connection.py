@@ -3,9 +3,8 @@ from sqlalchemy.orm import sessionmaker
 from os import getcwd, path
 
 class DataHandler:
-    def __init__(self):
-        self.__connection_string = 'sqlite:///C:\\Users\\Windows 10\\Documents\\GitHub\\DroneCompanion\\database\\configs\\flights_master.db'
-        #self.__connection_string = f'sqlite:///{path.join(getcwd(), "flights_master.db")}'
+    def __init__(self, db_path='database/configs/flights_master.db'):
+        self.__connection_string = f'sqlite:///{path.join(getcwd(), db_path)}'
         self.__engine = self.__create_db_engine()
         self.session = None
         
