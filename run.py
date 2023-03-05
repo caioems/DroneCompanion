@@ -88,8 +88,6 @@ class PipeLine:
 if __name__ == "__main__":
     ppl = PipeLine()
     kml_path = f'{ppl._root.root_folder}/flights.kml'
-       
-    ## map method
     results = list(tqdm(map(ppl.run, ppl._log_list), total=len(ppl._log_list)))
     
     ppl._kml.save(kml_path)
