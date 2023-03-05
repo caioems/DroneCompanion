@@ -11,9 +11,8 @@ from concurrent.futures import ThreadPoolExecutor
 
 #class containing functions for the data extraction/modeling and kml customization 
 class DayChecker:
-      
+    types = ["CAM", "EV", "BAT", "MSG", "POWR", "RCOU", "TERR", "VIBE"]    
     def create_csv(self, log_path):
-        self.types = ["CAM", "EV", "BAT", "MSG", "POWR", "RCOU", "TERR", "VIBE"]
         log = log_path.as_posix()
         path = log_path.parent
         
@@ -21,7 +20,7 @@ class DayChecker:
             os.system(f"mavlogdump.py --planner --format csv --types {type} {str(log)} > {str(path)}/{type}.csv")
         
         with ThreadPoolExecutor() as executor:       
-            executor.map(mycmd, self.types)
+            executor.map(mycmd, DayChecker.types)
     
     def create_df(self, log_path, csv_name):
         csv_file = os.path.join(log_path.parent, csv_name + ".csv")        
@@ -33,7 +32,7 @@ class DayChecker:
     
     def create_df_dict(self, flight_log):
         self.df_dict = {}
-        for i in self.types:
+        for i in DayChecker.types:
             self.df_dict[i] = self.create_df(flight_log, i)            
         return self.df_dict 
     
@@ -43,7 +42,7 @@ class DayChecker:
             os.remove(csv_file)
         
         with ThreadPoolExecutor() as executor:
-            executor.map(delete_all_csv, self.types)  
+            executor.map(delete_all_csv, DayChecker.types)  
     
     def metadata_test(self, log_path):        
         self.mdata_test = {}
@@ -90,51 +89,45 @@ class DayChecker:
     
     def create_linestring(self, log_path, kml, container_index):
         ls = kml.containers[container_index].newlinestring(name=log_path.name)
-        coords_list = []
-        for index, row in self.df_dict['CAM'].iterrows():
-            coords_list.append((row.Lng, row.Lat))
+        coords_list = [
+            (row.Lng, row.Lat) for index, row in self.df_dict['CAM'].iterrows()
+            ]
         ls.coords = coords_list
         return ls
     
     def create_polygon(self, log_path, kml, container_index):
         poly = kml.containers[container_index].newpolygon(name=log_path.name)
-        coords_list = []
-        for index, row in self.df_dict['CAM'].iterrows():
-            coords_list.append((row.Lng, row.Lat))
-        coords_list = np.array(coords_list)       
+        coords_list = [
+            (row.Lng, row.Lat) for index, row in self.df_dict['CAM'].iterrows()
+            ]
+        coords_list = np.array(coords_list)
         poly.outerboundaryis = concaveHull(coords_list, 3)
         return poly
     
     def rgb_style(self, feature):
         rgb_style = simplekml.Style()
+        rgb_style.linestyle.width = 3.0
         try:
             if 'OK' in self.mdata_test['Result'][0]:
                 rgb_style.linestyle.color = simplekml.Color.whitesmoke
-                rgb_style.linestyle.width = 3.0
-                feature.style = rgb_style
             else:
                 rgb_style.linestyle.color = simplekml.Color.black
-                rgb_style.linestyle.width = 3.0
-                feature.style = rgb_style
+            feature.style = rgb_style
         except:
             rgb_style.linestyle.color = simplekml.Color.whitesmoke
-            rgb_style.linestyle.width = 3.0
             feature.style = rgb_style
         
     def agr_style(self, feature):
         agr_style = simplekml.Style()
+        agr_style.linestyle.width = 2.0
         try:
             if 'OK' in self.mdata_test['Result'][0]:
                 agr_style.linestyle.color = simplekml.Color.red
-                agr_style.linestyle.width = 2.0
-                feature.style = agr_style
             else:
                 agr_style.linestyle.color = simplekml.Color.yellow
-                agr_style.linestyle.width = 2.0
-                feature.style = agr_style
+            feature.style = agr_style
         except:
             agr_style.linestyle.color = simplekml.Color.red
-            agr_style.linestyle.width = 2.0
             feature.style = agr_style
     
     def create_balloon_report(self, feature):
