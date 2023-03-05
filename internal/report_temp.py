@@ -1,3 +1,4 @@
+f'''
 <html>
 <table align="center" border="0" cellpadding="0" cellspacing="0" style="border-collapse:collapse; height:270px; width:400px">
 <tbody>
@@ -78,4 +79,4 @@
 	</tr>
 </tbody>
 </table>
-</html>
+</html>'''
