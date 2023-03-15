@@ -24,10 +24,10 @@ class PipeLine:
     def __init__(self):
         self._root = LogList()
         self._log_list = self._root.log_list
-        self._kml = self.kml_container('flights')
-        self.dc = None        
+        self._kml = self.create_kml('flights')
+        self.dc = DayChecker()       
         
-    def kml_container(self, kml_name):
+    def create_kml(self, kml_name):
         self._kml = simplekml.Kml(name=kml_name)
         self._kml.newfolder(name='RGB')
         self._kml.newfolder(name='AGR')
@@ -58,7 +58,6 @@ class PipeLine:
             )
     
     def run(self, flight_log):
-        self.dc = DayChecker()
         self.dc.create_csv(flight_log)
         self.dc.create_df_dict(flight_log)         
         self.dc.delete_csv(flight_log)
@@ -76,20 +75,22 @@ class PipeLine:
         #Creating the kml features
         flight_alt = self.dc.df_dict['TERR']['CHeight'].median()
         if flight_alt < 105:
-            rgb = self.dc.create_linestring(flight_log, ppl._kml, 0)
+            rgb = self.dc.create_linestring(flight_log, flights._kml, 0)
             self.dc.rgb_style(rgb)
             self.dc.create_balloon_report(rgb)
         elif flight_alt > 105:
-            agr = self.dc.create_linestring(flight_log, ppl._kml, 1)
+            agr = self.dc.create_linestring(flight_log, flights._kml, 1)
             self.dc.agr_style(agr)
             self.dc.create_balloon_report(agr)
 
 ##running when not being imported
 if __name__ == "__main__":
-    ppl = PipeLine()
-    kml_path = f'{ppl._root.root_folder}/flights.kml'
-    results = list(tqdm(map(ppl.run, ppl._log_list), total=len(ppl._log_list)))
+    flights = PipeLine()
+    kml = f'{flights._root.root_folder}/flights.kml'
+       
+    ## map method
+    results = list(tqdm(map(flights.run, flights._log_list), total=len(flights._log_list)))
     
-    ppl._kml.save(kml_path)
+    flights._kml.save(kml)
     print('Done.')
-    os.startfile(kml_path)
+    os.startfile(kml)
