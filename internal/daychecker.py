@@ -5,10 +5,12 @@ import exifread
 import simplekml
 import numpy as np
 import pandas as pd
+import tests.gps_test as gps_test
 from pathlib import Path
 from internal.concave_hull import concaveHull
 from tests.healthtests import HealthTests
 from concurrent.futures import ThreadPoolExecutor
+from internal.report_temp import balloon_report_template
 
 
 # class containing functions for the data extraction/modeling and kml customization
@@ -147,7 +149,24 @@ class DayChecker:
                         self.mdata_test["Result"] = self.mdata_test[test]
         except Exception as e:
             print(f"Error ocurred in the metadata test: {str(e)}")
-
+    
+    def seqlog_check(self):
+        path = self.flight_log.parent
+        seqlog = [f for f in os.listdir(path) if f.startswith("SEQ")]
+        
+        if len(seqlog) > 0:
+            seqlog_rtcm = os.path.join(path, "SEQLOG00.txt")
+            seqlog_rinex = os.path.join(path, "SEQLOG00.obs")
+            
+            gps_test.convert_rtcm_to_rinex(seqlog_rtcm)
+            obs_times = gps_test.get_rinex_times(seqlog_rinex)
+            obs_freq = gps_test.check_obs_frequency(obs_times)
+            obs_period = gps_test.check_obs_period(obs_times)
+            
+            self.seqlog_test = (obs_freq, obs_period)
+        else:
+            self.seqlog_test = (True, True)
+    
     def create_linestring(self, kml):
         """Creates a linestring feature based on the lat and lon of the CAM messages within the log.
 
@@ -185,48 +204,91 @@ class DayChecker:
         poly.outerboundaryis = concaveHull(coords_list, 3)
         return poly
 
-    def rgb_style(self, feature):
-        """
-         Set the style of the simplekml.LineString. It is used to indicate the sensor used in the flight.
-         
-         @param feature - linestring to be stylized
-        """
-        rgb_style = simplekml.Style()
-        rgb_style.linestyle.width = 3.0
-        
-        #Different color line if the test results are good or bad
-        try:
-            
-            if "OK" in self.mdata_test["Result"][0]:
-                rgb_style.linestyle.color = simplekml.Color.whitesmoke
-            else:
-                rgb_style.linestyle.color = simplekml.Color.black
-            feature.style = rgb_style
-            
-        #Ignores the color change if there is an issue with mdata_test
-        except:
-            rgb_style.linestyle.color = simplekml.Color.whitesmoke
-            feature.style = rgb_style
-
-    def agr_style(self, feature):
+    def change_line_style(self, feature):
         """
         Set the style of the simplekml.LineString. It is used to indicate the sensor used in the flight.
          
          @param feature - linestring to be stylized
         """
-        agr_style = simplekml.Style()
-        agr_style.linestyle.width = 2.0
-        try:
-            # This method is called when the test result is OK.
-            if "OK" in self.mdata_test["Result"][0]:
-                agr_style.linestyle.color = simplekml.Color.red
-            else:
-                agr_style.linestyle.color = simplekml.Color.yellow
-            feature.style = agr_style
-        except:
-            agr_style.linestyle.color = simplekml.Color.red
-            feature.style = agr_style
+        new_style = simplekml.Style()
+        new_style.linestyle.width = 2.0
+        
+        if 'FAIL' in self.mdata_test["Result"][0]:
+            new_style.linestyle.color = simplekml.Color.yellow        
+        elif not (self.seqlog_test[0] & self.seqlog_test[1]):
+            new_style.linestyle.color = simplekml.Color.yellow            
+        elif 'FAIL' in self.report.trig_status:
+            new_style.linestyle.color = simplekml.Color.yellow            
+        else:
+            new_style.linestyle.color = simplekml.Color.red
+        
+        #//OLD LOGIC//
+        # if "OK" in self.mdata_test["Result"][0]:
+        #     new_style.linestyle.color = simplekml.Color.red
+        # #checking seqlog consistency
+        # elif (self.seqlog_test[0] & self.seqlog_test[1]):
+        #     new_style.linestyle.color = simplekml.Color.red
+        # elif self.report.trig_status == 'OK':
+        #     new_style.linestyle.color = simplekml.Color.red
+        # else:
+        #     new_style.linestyle.color = simplekml.Color.yellow
+        
+        feature.style = new_style
+            
+    def get_drone_uid(self):
+        msgs = self.df_dict["MSG"]
+        mask = msgs["Message"].str.startswith('Pixhawk')
+        raw_uid = msgs[mask]['Message'][0].split()
+        drone_uid = ''.join(raw_uid[1:])
+        return drone_uid
 
+    #TODO: error dealing when BAT sheet is filled with NaN
+    def create_balloon_report(self, feature):
+        """
+         Create a report for the linestrings and save it to the KML file. It is used to show a balloon with useful information in google earth.
+         
+         @param feature - linestring to be stylized
+        """
+        flight_date = self.df_dict["EV"].index[0]
+        flight_time = self.df_dict["EV"].index[-1] - flight_date
+                
+        #Text variables
+        drone_uid = self.drone_uid
+        f_time = f"{str(flight_time.components.minutes)}m {str(flight_time.components.seconds)}s"
+        batt_cons = f"{str(round(self.df_dict['BAT'].CurrTot[-1]))} mAh"
+        photos = f"{self.mdata_test['Result'][0]}"
+        photos_fb = f"{self.mdata_test['Result'][1]}"
+        trigger = f"{self.report.trig_status}"
+        trig_fb = f"{self.report.trig_feedback}"
+        motors = f"{self.report.motors_status}"
+        motors_fb = f"{self.report.motors_feedback}"
+        imu = f"{self.report.imu_status}"
+        imu_fb = f"{self.report.imu_feedback}"
+        vcc = f"{self.report.vcc_status}"
+        vcc_fb = f"{self.report.vcc_feedback}"
+        gps_freq = f"{'Frequency OK (5 Hz)' if self.seqlog_test[0] == True else 'Bad observations frequency'}"
+        gps_period = f"{'period OK (same day)' if self.seqlog_test[1] == True else 'bad period (at least two days in the SEQLOG file)'}"
+
+        feature.balloonstyle.text = balloon_report_template(
+            #TODO: add drone uid to template
+            drone_uid,
+            flight_date,
+            f_time, 
+            batt_cons, 
+            photos, 
+            photos_fb,
+            motors,
+            motors_fb,
+            trigger,
+            trig_fb,
+            imu,
+            imu_fb,
+            gps_freq,
+            gps_period,
+            vcc,
+            vcc_fb
+            )
+        
     def run(self):
         """
         This is the main method of the class. It will create the CSV files, the dataframes from the data files, and then delete the CSV files. It also runs the metadata tests and create the health reports.
@@ -235,10 +297,12 @@ class DayChecker:
         self.create_df_dict()
         self.delete_csv()
         self.metadata_test()
+        self.seqlog_check()
 
         self.flight_timestamp = str(self.df_dict["EV"].index[0].timestamp())
-        # TODO: fix a bug where sometimes the version is imported instead of serial number
-        self.drone_uid = self.df_dict["MSG"].Message[2][9:].replace(" ", "")
+        self.drone_uid = self.get_drone_uid()
+        
+        # Running the drone health tests
         self.report = HealthTests(
             self.df_dict["RCOU"],
             self.df_dict["VIBE"],
@@ -247,98 +311,3 @@ class DayChecker:
             self.df_dict["TRIG"],
         )
         self.report.run()
-
-    def create_balloon_report(self, feature):
-        """
-         Create a report for the linestrings and save it to the KML file. It is used to show a balloon with useful information in google earth.
-         
-         @param feature - linestring to be stylized
-        """
-        flight_data = self.df_dict["EV"].index[0]
-        flight_time = self.df_dict["EV"].index[-1] - flight_data
-        base_path = Path(__file__).parent
-        template_path = (base_path / "../internal/motororder-quad-x-2d.png").resolve()
-
-        # TODO: convert html to file instead of raw coding
-        # TODO: balloon being displayed as default
-        feature.balloonstyle.text = f"""<html>
-                                        <table align="center" border="0" cellpadding="0" cellspacing="0" style="border-collapse:collapse; height:270px; width:400px">
-                                        <tbody>
-                                            <tr>
-                                                <td>
-                                                <table align="center" border="0" cellpadding="0" cellspacing="0" style="border-collapse:collapse; height:100%; margin-left:auto; margin-right:auto; opacity:0.95; width:100%">
-                                                    <tbody>
-                                                        <tr>
-                                                            <td style="height:90px; text-align:center; vertical-align:middle; width:50%">
-                                                            <p><span style="color:#000000"><strong><span style="font-family:Tahoma,Geneva,sans-serif">Flight time:</span></strong></span></p>
-
-                                                            <p><span style="font-size:20px"><strong><span style="font-family:Tahoma,Geneva,sans-serif">{str(flight_time.components.minutes)}m {str(flight_time.components.seconds)}s</span></strong></span></p>
-                                                            </td>
-                                                            <td style="height:90px; text-align:center; vertical-align:middle; width:50%">
-                                                            <p><span style="color:#000000"><strong><span style="font-family:Tahoma,Geneva,sans-serif">Batt. cons.:</span></strong></span></p>
-
-                                                            <p><span style="font-size:20px"><strong><span style="font-family:Tahoma,Geneva,sans-serif">{str(round(self.df_dict['BAT'].CurrTot[-1]))} mAh</span></strong></span></p>
-                                                            </td>
-                                                        </tr>
-                                                        <tr>
-                                                            <td style="height:90px; text-align:center; vertical-align:middle; width:50%">
-                                                            <p><span style="color:#000000"><strong><span style="font-family:Tahoma,Geneva,sans-serif">Camera:</span></strong></span></p>
-
-                                                            <p><span style="font-size:20px"><strong><span style="font-family:Tahoma,Geneva,sans-serif">{self.mdata_test['Result'][0]}</span></strong></span></p>
-
-                                                            <p><span style="color:#bdc3c7"><em><span style="font-family:Tahoma,Geneva,sans-serif">{self.mdata_test['Result'][1]}&nbsp;</span></em></span></p>
-                                                            </td>
-                                                            <td style="height:90px; text-align:center; vertical-align:middle; width:50%">
-                                                            <p><span style="color:#000000"><strong><span style="font-family:Tahoma,Geneva,sans-serif">Motors:</span></strong></span></p>
-
-                                                            <p><span style="font-size:20px"><strong><span style="font-family:Tahoma,Geneva,sans-serif">{self.report.motors_status}</span></strong></span></p>
-
-                                                            <p><span style="color:#bdc3c7"><em><span style="font-family:Tahoma,Geneva,sans-serif">{self.report.motors_feedback}&nbsp;</span></em></span></p>
-                                                            </td>
-                                                        </tr>
-                                                        <tr>
-                                                            <td style="height:90px; text-align:center; vertical-align:middle; width:50%">
-                                                            <p><span style="color:#000000"><strong><span style="font-family:Tahoma,Geneva,sans-serif">IMU:</span></strong></span></p>
-
-                                                            <p><span style="font-size:20px"><strong><span style="font-family:Tahoma,Geneva,sans-serif">{self.report.imu_status}</span></strong></span></p>
-
-                                                            <p><span style="color:#bdc3c7"><em><span style="font-family:Tahoma,Geneva,sans-serif">{self.report.imu_feedback}</span></em></span></p>
-
-                                                            <p>&nbsp;</p>
-                                                            </td>
-                                                            <td style="height:90px; text-align:center; vertical-align:middle; width:50%">
-                                                            <p><span style="color:#000000"><strong><span style="font-family:Tahoma,Geneva,sans-serif">Board voltage:</span></strong></span></p>
-
-                                                            <p><span style="font-size:20px"><strong><span style="font-family:Tahoma,Geneva,sans-serif">{self.report.vcc_status}</span></strong></span></p>
-
-                                                            <p><span style="color:#bdc3c7"><em><span style="font-family:Tahoma,Geneva,sans-serif">{self.report.vcc_feedback}&nbsp;</span></em></span></p>
-                                                            </td>
-                                                        </tr>
-                                                    </tbody>
-                                                </table>
-
-                                                <p>&nbsp;</p>
-                                                </td>
-                                                <td>&nbsp;
-                                                <table align="center" border="0" cellpadding="0" cellspacing="0" style="border-collapse:collapse; height:100%; margin-left:auto; margin-right:auto; width:100%">
-                                                    <tbody>
-                                                        <tr>
-                                                            <td style="height:55px; text-align:center; vertical-align:middle; width:50%"><span style="font-size:24px"><span style="font-family:Tahoma,Geneva,sans-serif"><span style="color:#2ecc71"><strong>{self.report.motors_pwm_list[2]}</strong></span></span></span></td>
-                                                            <td style="height:55px; text-align:center; vertical-align:middle; width:50%"><span style="font-size:24px"><span style="font-family:Tahoma,Geneva,sans-serif"><strong><span style="color:#3498db">{self.report.motors_pwm_list[0]}</span></strong></span></span></td>
-                                                        </tr>
-                                                        <tr>
-                                                            <td colspan="2" style="text-align:center; vertical-align:middle"><span style="font-family:Tahoma,Geneva,sans-serif"><img alt="" src="{template_path.as_uri()}" style="border-style:solid; border-width:0px; height:159px; margin-left:20px; margin-right:20px; width:149px" /></span></td>
-                                                        </tr>
-                                                        <tr>
-                                                            <td style="height:55px; text-align:center; vertical-align:middle; width:50%"><span style="font-size:24px"><span style="font-family:Tahoma,Geneva,sans-serif"><strong><span style="color:#3498db">{self.report.motors_pwm_list[1]}</span></strong></span></span></td>
-                                                            <td style="height:55px; text-align:center; vertical-align:middle; width:50%"><span style="font-size:24px"><span style="font-family:Tahoma,Geneva,sans-serif"><span style="color:#2ecc71"><strong>{self.report.motors_pwm_list[3]}</strong></span></span></span></td>
-                                                        </tr>
-                                                    </tbody>
-                                                </table>
-
-                                                <p>&nbsp;</p>
-                                                </td>
-                                            </tr>
-                                        </tbody>
-                                    </table>
-                                </html>"""

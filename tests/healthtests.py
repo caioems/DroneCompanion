@@ -41,6 +41,7 @@ trig_status = {self.trig_status}
 trig_feedback = {self.trig_feedback}"""
 
     def motor_test(self):
+        # sourcery skip: extract-duplicate-method, hoist-statement-from-if, merge-duplicate-blocks, move-assign-in-block, remove-redundant-if, split-or-ifs
         """
          This is a test to see if it's possible to predict 
          motors maintenance. It compares each servo channel 
@@ -70,22 +71,22 @@ trig_feedback = {self.trig_feedback}"""
         
         warn_level = 30
         if fmotors >= warn_level or bmotors >= warn_level:
-            bad_pwm = None
-            bad_motor = None
+            #bad_pwm = None
+            #bad_motor = None
             if fmotors >= warn_level:
                 bad_pwm = max([self.motors_pwm_list[0], self.motors_pwm_list[2]])
-                bad_motor = str(self.motors_pwm_list.index(bad_pwm) + 1)
+                #bad_motor = str(self.motors_pwm_list.index(bad_pwm) + 1)
             elif bmotors >= warn_level:
                 bad_pwm = max([self.motors_pwm_list[1], self.motors_pwm_list[3]])
-                bad_motor = str(self.motors_pwm_list.index(bad_pwm) + 1)
+                #bad_motor = str(self.motors_pwm_list.index(bad_pwm) + 1)
 
             fail_level = 45
             if fmotors >= fail_level or bmotors >= fail_level:
                 self.motors_status = "FAIL"
-                self.motors_feedback = f'Big difference in {"frontal" if fmotors >= fail_level else "back"} motors PWM\'s avg. Check motor {bad_motor}.'
+                self.motors_feedback = f'Big difference in {"frontal" if fmotors >= fail_level else "back"} motors output.'
             else:
                 self.motors_status = "WARN"
-                self.motors_feedback = f'Small difference between {"frontal" if fmotors >= warn_level else "back"} motors PWM. Check motor {bad_motor}.'
+                self.motors_feedback = f'Small difference in {"frontal" if fmotors >= warn_level else "back"} motors output.'
 
     def vibe_test(self):
         """
@@ -155,7 +156,7 @@ trig_feedback = {self.trig_feedback}"""
         # This function is called when the camera has skipped the triggers.
         if triggers == feedbacks:
             self.trig_status = "OK"
-            self.trig_feedback = f"No photos skipped ({triggers})."
+            self.trig_feedback = f"no photos skipped ({triggers})."
         elif triggers > feedbacks:
             self.trig_status = "FAIL"
             self.trig_feedback = (
@@ -163,7 +164,7 @@ trig_feedback = {self.trig_feedback}"""
             )
         elif triggers < feedbacks:
             self.trig_status = "FAIL"
-            self.trig_feedback = f"The camera skipped {feedbacks - triggers} photos."
+            self.trig_feedback = f"the camera skipped {feedbacks - triggers} photos."
 
     def run(self):
         """
