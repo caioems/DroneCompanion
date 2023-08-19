@@ -9,7 +9,6 @@
 # """
 
 # TODO: create a windows service for syncing data with cloud db(API)
-
 import simplekml, os
 from database.repository.report_repo import RpRepo
 from database.repository.motors_repo import MtRepo
@@ -73,9 +72,9 @@ class PipeLine:
         """
          Creates and runs the DayChecker. This is the main method.
          
-         @param flight_log - flight log to be analyzed
-         
+         @param flight_log - flight log to be analyzed         
         """
+        # Creating main class
         self.dc = DayChecker(flight_log)
 
         # Storing data into db
@@ -83,7 +82,7 @@ class PipeLine:
 
         # Creating the kml features
         flight_ls = self.dc.create_linestring(self._kml)
-        self.dc.agr_style(flight_ls)
+        self.dc.change_line_style(flight_ls)
         self.dc.create_balloon_report(flight_ls)
 
 
@@ -94,8 +93,11 @@ if __name__ == "__main__":
 
     ## map method
     results = list(
-        tqdm(map(flights.run, flights._log_list), total=len(flights._log_list))
-    )
+        tqdm(
+            map(flights.run, flights._log_list), 
+            total=len(flights._log_list)
+            )
+        )
 
     flights._kml.save(kml_file)
     print("Done.")
