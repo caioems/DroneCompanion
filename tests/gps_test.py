@@ -64,10 +64,11 @@ def check_obs_frequency(obs_times):
     :param obs_times: numpy.ndarray containing the datetime of each observation.
     """
 
-    if pd.Timedelta(microseconds=199999) <= pd.Series(obs_times).diff().median() <= pd.Timedelta(microseconds=200001):
-        return True
-    else:
-        return False
+    return (
+        pd.Timedelta(microseconds=199999)
+        <= pd.Series(obs_times).diff().median()
+        <= pd.Timedelta(microseconds=200001)
+    )
     
 def check_obs_period(obs_times):
     """
@@ -77,10 +78,7 @@ def check_obs_period(obs_times):
     :param obs_times: array containing the datetime of each observation.
     """
     days = pd.DataFrame([dt.day for dt in obs_times])
-    if days.nunique()[0] == 1:
-        return True
-    else:
-        return False  
+    return days.nunique()[0] == 1  
 
 if __name__ == "__main__":
     # Paths to the RTCM3 and RINEX files

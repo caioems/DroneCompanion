@@ -49,23 +49,23 @@ class PipeLine:
         rp_repo.insert(
             self.dc.flight_timestamp,
             self.dc.drone_uid,
-            self.dc.report.motors_status,
-            self.dc.report.motors_feedback,
-            self.dc.report.imu_status,
-            self.dc.report.imu_feedback,
-            self.dc.report.vcc_status,
-            self.dc.report.vcc_mean,
-            self.dc.report.vcc_std,
+            self.dc.htests.motors_status,
+            self.dc.htests.motors_feedback,
+            self.dc.htests.imu_status,
+            self.dc.htests.imu_feedback,
+            self.dc.htests.vcc_status,
+            self.dc.htests.vcc_mean,
+            self.dc.htests.vcc_std,
         )
 
         m_repo = MtRepo()
         m_repo.insert(
             self.dc.flight_timestamp,
             self.dc.drone_uid,
-            self.dc.report.motors_pwm_list[0],
-            self.dc.report.motors_pwm_list[1],
-            self.dc.report.motors_pwm_list[2],
-            self.dc.report.motors_pwm_list[3],
+            self.dc.htests.motors_pwm_list[0],
+            self.dc.htests.motors_pwm_list[1],
+            self.dc.htests.motors_pwm_list[2],
+            self.dc.htests.motors_pwm_list[3],
         )
 
     def run(self, flight_log):

@@ -150,11 +150,11 @@ class DayChecker:
         except Exception as e:
             print(f"Error ocurred in the metadata test: {str(e)}")
     
-    def seqlog_check(self):
+    def seqlog_check(self):  # sourcery skip: extract-method
         path = self.flight_log.parent
         seqlog = [f for f in os.listdir(path) if f.startswith("SEQ")]
         
-        if len(seqlog) > 0:
+        if seqlog:
             seqlog_rtcm = os.path.join(path, "SEQLOG00.txt")
             seqlog_rinex = os.path.join(path, "SEQLOG00.obs")
             
@@ -215,9 +215,9 @@ class DayChecker:
         
         if 'FAIL' in self.mdata_test["Result"][0]:
             new_style.linestyle.color = simplekml.Color.yellow        
-        elif not (self.seqlog_test[0] & self.seqlog_test[1]):
+        elif not (self.seqlog_test[0] | self.seqlog_test[1]):
             new_style.linestyle.color = simplekml.Color.yellow            
-        elif 'FAIL' in self.report.trig_status:
+        elif 'FAIL' in self.htests.trig_status:
             new_style.linestyle.color = simplekml.Color.yellow            
         else:
             new_style.linestyle.color = simplekml.Color.red
@@ -239,8 +239,7 @@ class DayChecker:
         msgs = self.df_dict["MSG"]
         mask = msgs["Message"].str.startswith('Pixhawk')
         raw_uid = msgs[mask]['Message'][0].split()
-        drone_uid = ''.join(raw_uid[1:])
-        return drone_uid
+        return ''.join(raw_uid[1:])
 
     #TODO: error dealing when BAT sheet is filled with NaN
     def create_balloon_report(self, feature):
@@ -258,14 +257,14 @@ class DayChecker:
         batt_cons = f"{str(round(self.df_dict['BAT'].CurrTot[-1]))} mAh"
         photos = f"{self.mdata_test['Result'][0]}"
         photos_fb = f"{self.mdata_test['Result'][1]}"
-        trigger = f"{self.report.trig_status}"
-        trig_fb = f"{self.report.trig_feedback}"
-        motors = f"{self.report.motors_status}"
-        motors_fb = f"{self.report.motors_feedback}"
-        imu = f"{self.report.imu_status}"
-        imu_fb = f"{self.report.imu_feedback}"
-        vcc = f"{self.report.vcc_status}"
-        vcc_fb = f"{self.report.vcc_feedback}"
+        trigger = f"{self.htests.trig_status}"
+        trig_fb = f"{self.htests.trig_feedback}"
+        motors = f"{self.htests.motors_status}"
+        motors_fb = f"{self.htests.motors_feedback}"
+        imu = f"{self.htests.imu_status}"
+        imu_fb = f"{self.htests.imu_feedback}"
+        vcc = f"{self.htests.vcc_status}"
+        vcc_fb = f"{self.htests.vcc_feedback}"
         gps_freq = f"{'Frequency OK (5 Hz)' if self.seqlog_test[0] == True else 'Bad observations frequency'}"
         gps_period = f"{'period OK (same day)' if self.seqlog_test[1] == True else 'bad period (at least two days in the SEQLOG file)'}"
 
@@ -303,11 +302,11 @@ class DayChecker:
         self.drone_uid = self.get_drone_uid()
         
         # Running the drone health tests
-        self.report = HealthTests(
+        self.htests = HealthTests(
             self.df_dict["RCOU"],
             self.df_dict["VIBE"],
             self.df_dict["POWR"],
             self.df_dict["CAM"],
             self.df_dict["TRIG"],
         )
-        self.report.run()
+        self.htests.run()
