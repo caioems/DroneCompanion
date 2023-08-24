@@ -11,18 +11,21 @@ def balloon_report_template(
     trig_fb,
     imu,
     imu_fb,
-    gps_freq,
-    gps_period,
     vcc,
-    vcc_fb
+    vcc_fb,
+    gps,
+    gps_fb
     ):
     html = f"""<html>
     <table border="0" cellpadding="0" cellspacing="0" style="width:500px">
 	<tbody>
 		<tr>
-			<td><span style="font-size:18px"><strong>Flight date:</strong> {flight_date.date()}</span><br />
+			<td>
+			<p><span style="font-size:18px"><strong>Drone UID: </strong>{drone_uid}</span><br />
+			<span style="font-size:18px"><strong>Flight date:</strong> {flight_date.date()}</span><br />
 			<span style="font-size:18px"><strong>Flight time:</strong> {f_time}</span><br />
-			<span style="font-size:18px"><strong>Battery usage:</strong> {batt_cons}</span></td>
+			<span style="font-size:18px"><strong>Battery usage:</strong> {batt_cons}</span></p>
+			</td>
 		</tr>
 		<tr>
 			<td>
@@ -60,8 +63,8 @@ def balloon_report_template(
 						<td style="background-color:#eeeeee; width:50%">
 						<p style="text-align:center"><span style="font-size:20px">🌐 <strong>GPS / Logger</strong></span></p>
 
-						<p style="text-align:center"><span style="font-size:20px">{gps_freq}</span><br />
-						<span style="font-size:18px">{gps_period}</span></p>
+						<p style="text-align:center"><span style="font-size:20px">{gps}</span><br />
+						<span style="font-size:18px">{gps_fb}</span></p>
 						</td>
 						<td style="background-color:#eeeeee; width:50%">
 						<p style="text-align:center"><span style="font-size:20px">⚡ <strong>Vcc</strong></span></p>
@@ -75,5 +78,6 @@ def balloon_report_template(
 			</td>
 		</tr>
 	</tbody>
-	</table></html>"""
+</table>
+</html>"""
     return html

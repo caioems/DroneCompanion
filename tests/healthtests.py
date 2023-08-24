@@ -156,15 +156,13 @@ trig_feedback = {self.trig_feedback}"""
         # This function is called when the camera has skipped the triggers.
         if triggers == feedbacks:
             self.trig_status = "OK"
-            self.trig_feedback = f"no photos skipped ({triggers})."
+            self.trig_feedback = f"No photos skipped ({triggers})"
         elif triggers > feedbacks:
             self.trig_status = "FAIL"
-            self.trig_feedback = (
-                f"{triggers - feedbacks} photos were taken without feedback."
-            )
+            self.trig_feedback = (f"{triggers - feedbacks} photos were taken without feedback")
         elif triggers < feedbacks:
             self.trig_status = "FAIL"
-            self.trig_feedback = f"the camera skipped {feedbacks - triggers} photos."
+            self.trig_feedback = f"There were {feedbacks - triggers} false feedbacks"
 
     def run(self):
         """

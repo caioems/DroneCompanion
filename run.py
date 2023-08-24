@@ -7,7 +7,7 @@
 
 # @author: caioems
 # """
-
+import cProfile
 # TODO: create a windows service for syncing data with cloud db(API)
 import simplekml, os
 from database.repository.report_repo import RpRepo
@@ -84,7 +84,6 @@ class PipeLine:
         flight_ls = self.dc.create_linestring(self._kml)
         self.dc.change_line_style(flight_ls)
         self.dc.create_balloon_report(flight_ls)
-
 
 ##running when not being imported
 if __name__ == "__main__":
