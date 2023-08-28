@@ -9,14 +9,14 @@ class LogList:
       
     def input_window(self):
       root = Tk()
+      root.withdraw()
       root.update()
       path = askdirectory(title='Select the root folder:')
       root.destroy()
       return path
     
-    def create_log_list (self, root_folder):
-      log_list = list(pathlib.Path(root_folder).glob(r"**\*.BIN"))
-      return log_list 
+    def create_log_list(self, root_folder):
+        return list(pathlib.Path(root_folder).glob(r"**\*.BIN")) 
     
 # a = LogList()
 # print(a)

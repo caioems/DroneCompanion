@@ -145,7 +145,7 @@ class DayChecker:
             keys = self.mdata_test.keys()
             # This method will set the result of the sensor test.
             if all(self.mdata_test[test][0] == "OK" for test in keys):
-                self.mdata_test["Result"] = ["OK", "no sensor issues"]
+                self.mdata_test["Result"] = ["OK", "No sensor issues"]
             else:
                 # This method will set the result of all tests in the test dictionary
                 for test in keys:

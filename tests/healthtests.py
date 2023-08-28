@@ -50,7 +50,7 @@ trig_feedback = {self.trig_feedback}"""
          
         """
         self.motors_status = "OK"
-        self.motors_feedback = "balanced"
+        self.motors_feedback = "Motors are balanced"
         self.motors_pwm_list = []
 
         pwm_df = pd.DataFrame(
@@ -95,7 +95,7 @@ trig_feedback = {self.trig_feedback}"""
         
         """
         self.imu_status = "OK"
-        self.imu_feedback = "no vibe issues"
+        self.imu_feedback = "No vibe issues"
 
         clips = (
             self._vibe_df.Clip0[-1],
@@ -129,32 +129,32 @@ trig_feedback = {self.trig_feedback}"""
 
         self.vcc_status = "OK"
         self.vcc_feedback = (
-            f"No board voltage issues (avg: {self.vcc_mean}v, std: {self.vcc_std}v)."
+            f"No board voltage issues ({self.vcc_mean}v, ±{self.vcc_std}v)"
         )
 
         # Check the voltage deviation of the board
         if self.vcc_std >= 0.1:
             self.vcc_status = "WARN"
             self.vcc_feedback = (
-                f"Small voltage deviation ({self.vcc_std}v)"
+                f"Small voltage deviation ({self.vcc_mean}v, ±{self.vcc_std}v)"
             )
         # Check the board to see if the voltage deviation is greater than 0.15v
         if self.vcc_std >= 0.15:
             self.vcc_status = "FAIL"
             self.vcc_feedback = (
-                f"Big voltage deviation ({self.vcc_std}v)"
+                f"Big voltage deviation ({self.vcc_mean}v, ±{self.vcc_std}v)"
             )
         
         if self.vcc_mean < 5:
             self.vcc_status = "WARN"
             self.vcc_feedback = (
-                f"Internal board voltage is low ({self.vcc_mean}v)"
+                f"Internal board voltage is low ({self.vcc_mean}v, ±{self.vcc_std}v)"
             )
             
         if self.vcc_mean < 4.9:
             self.vcc_status = "FAIL"
             self.vcc_feedback = (
-                f"Internal board voltage is too low ({self.vcc_mean}v)!"
+                f"Internal board voltage is too low! ({self.vcc_mean}v, ±{self.vcc_std}v)"
             )
 
     def trig_test(self):
