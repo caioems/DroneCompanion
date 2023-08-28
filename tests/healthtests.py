@@ -136,13 +136,25 @@ trig_feedback = {self.trig_feedback}"""
         if self.vcc_std >= 0.1:
             self.vcc_status = "WARN"
             self.vcc_feedback = (
-                f"Small voltage deviation ({self.vcc_std}v), please check the board."
+                f"Small voltage deviation ({self.vcc_std}v)"
             )
         # Check the board to see if the voltage deviation is greater than 0.15v
         if self.vcc_std >= 0.15:
             self.vcc_status = "FAIL"
             self.vcc_feedback = (
-                f"Big voltage deviation ({self.vcc_std}v), please check the board."
+                f"Big voltage deviation ({self.vcc_std}v)"
+            )
+        
+        if self.vcc_mean < 5:
+            self.vcc_status = "WARN"
+            self.vcc_feedback = (
+                f"Internal board voltage is low ({self.vcc_mean}v)"
+            )
+            
+        if self.vcc_mean < 4.9:
+            self.vcc_status = "FAIL"
+            self.vcc_feedback = (
+                f"Internal board voltage is too low ({self.vcc_mean}v)!"
             )
 
     def trig_test(self):

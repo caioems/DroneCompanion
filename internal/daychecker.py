@@ -230,7 +230,7 @@ class DayChecker:
          @param feature - linestring to be stylized
         """
         new_style = simplekml.Style()
-        new_style.linestyle.width = 2.5
+        new_style.linestyle.width = 2
         new_style.linestyle.color = simplekml.Color.red
              
         if 'FAIL' in self.mdata_test["Result"][0]:
@@ -240,6 +240,9 @@ class DayChecker:
             new_style.linestyle.color = simplekml.Color.yellow             
                             
         elif 'FAIL' in self.htests.trig_status:
+            new_style.linestyle.color = simplekml.Color.yellow
+        
+        elif 'FAIL' in self.htests.vcc_status:
             new_style.linestyle.color = simplekml.Color.yellow
         
         feature.style = new_style
@@ -254,6 +257,16 @@ class DayChecker:
         mask = msgs["Message"].str.startswith('Pixhawk')
         raw_uid = msgs[mask]['Message'][0].split()
         return ''.join(raw_uid[1:])
+    
+    def get_drone_no(self):
+        """Gets the drone internal ID based on a module containing the serial dict. If didn't find it, it returns the full UID number.
+
+        Returns:
+            str: Flight controller internal ID
+        """
+        from internal.drones import serial_dict
+        
+        return serial_dict.get(self.drone_uid, self.drone_uid)
 
     #TODO: error dealing when BAT sheet is filled with NaN
     def create_balloon_report(self, feature):
@@ -266,7 +279,7 @@ class DayChecker:
         flight_time = self.df_dict["EV"].index[-1] - flight_date
                 
         #Text variables
-        drone_uid = self.drone_uid
+        drone_no = self.get_drone_no()
         f_time = f"{flight_time.components.minutes}m {flight_time.components.seconds}s"
         batt_cons = f"{str(round(self.df_dict['BAT'].CurrTot[-1]))} mAh"
         photos = f"{self.mdata_test['Result'][0]}"
@@ -283,7 +296,7 @@ class DayChecker:
         gps_fb = f"{self.seqlog_test['Result'][1]}"
 
         feature.balloonstyle.text = balloon_report_template(
-            drone_uid,
+            drone_no,
             flight_date,
             f_time, 
             batt_cons, 

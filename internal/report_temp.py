@@ -1,5 +1,5 @@
 def balloon_report_template(
-    drone_uid,
+    drone_no,
     flight_date, 
     f_time, 
     batt_cons, 
@@ -21,7 +21,7 @@ def balloon_report_template(
 	<tbody>
 		<tr>
 			<td>
-			<p><span style="font-size:18px"><strong>Drone UID: </strong>{drone_uid}</span><br />
+			<p><span style="font-size:18px"><strong>Drone UID: </strong>{drone_no}</span><br />
 			<span style="font-size:18px"><strong>Flight date:</strong> {flight_date.date()}</span><br />
 			<span style="font-size:18px"><strong>Flight time:</strong> {f_time}</span><br />
 			<span style="font-size:18px"><strong>Battery usage:</strong> {batt_cons}</span></p>

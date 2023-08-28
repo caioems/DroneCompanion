@@ -1,7 +1,7 @@
 import os, subprocess
 import georinex as gr
 import pandas as pd
-from pyrtcm import RTCMReader
+from pyrtcm import RTCMReader, rtcmhelpers
 
 
 def parse_rtcm_to_rinex(rtcm_file, method='rtklib'):
@@ -40,7 +40,7 @@ def parse_rtcm_to_rinex(rtcm_file, method='rtklib'):
         except:
             print("RTCM3 file could not be parsed.")
 
-#TODO: fix this method (use gr.load instead)        
+#TODO: fix this method - use rtcmhelpers.tow2utc() to get the HH:MM:SS.ffffff time related to the beginning of the day then convert it to pd.Timestamp)       
 def parse_rtcm_to_dataset(rtcm_file):
     """
     Function to read observation times from an RTCM3 file using RTCMReader.
@@ -56,7 +56,7 @@ def parse_rtcm_to_dataset(rtcm_file):
         rtcm = RTCMReader(raw_file)
         for _, parsed_data in rtcm:
             try:
-                yield parsed_data.GNSSEpoch
+                yield parsed_data
             except AttributeError:
                 continue
             
@@ -90,8 +90,7 @@ def check_gps_frequency(rinex_epochs):
     timedeltas = rinex_epochs.to_series().diff()
     freq_test = pd.Timedelta(microseconds=199999) <= timedeltas.median()<= pd.Timedelta(microseconds=200001)
 
-    return ('OK', '') if freq_test else ('FAIL', 'Bad GPS frequency')
-        
+    return ('OK', '') if freq_test else ('FAIL', 'Bad GPS frequency')     
 
 def check_gps_date(rinex_epochs, days=1):
     """
@@ -136,5 +135,5 @@ if __name__ == "__main__":
     print(f'GPS frequency succesfully checked. Result: {gps_freq[0]}')
     gps_date = check_gps_date(rinex_epochs)
     print(f'GPS date succesfully checked. Result: {gps_date[0]}')
-    rinex_ratio = check_epochs_ratio(rinex_epochs, 0.9)
+    rinex_ratio = check_epochs_ratio(rinex_epochs, 0.6)
     print(f'Epochs ratio succesfully checked. Result: {rinex_ratio[0]}')

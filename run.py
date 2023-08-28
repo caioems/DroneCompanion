@@ -7,8 +7,6 @@
 
 # @author: caioems
 # """
-import cProfile
-# TODO: create a windows service for syncing data with cloud db(API)
 import simplekml, os
 from database.repository.report_repo import RpRepo
 from database.repository.motors_repo import MtRepo
