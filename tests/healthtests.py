@@ -20,37 +20,39 @@ class HealthTests:
         self._cam_df = cam_df
         self._trig_df = trig_df
 
-        self.motors_status = "UNKNOWN"
-        self.motors_feedback = ""
-        self.imu_status = "UNKNOWN"
-        self.imu_feedback = ""
-        self.gps_status = "UNKNOWN"
-        self.gps_feedback = ""
+        self.motors_status = None
+        self.motors_feedback = None
+        self.imu_status = None
+        self.imu_feedback = None
         self.vcc_status = None
-        self.vcc_mean = None
-        self.vcc_std = None
+        self.vcc_feedback = None
+        self.trig_status = None
+        self.trig_feedback = None
 
     def __repr__(self):
-        return f"""motors_status = {self.motors_status} 
-motors_feedback = {self.motors_feedback}
-imu_status = {self.imu_status}
-imu_feedback = {self.imu_feedback}
-gps_status = {self.gps_status}
-gps_feedback = {self.gps_feedback}
-trig_status = {self.trig_status}
-trig_feedback = {self.trig_feedback}"""
+        return f"\n".join([
+            f"motors_status = {self.motors_status}",
+            f"motors_feedback = {self.motors_feedback}",
+            f"imu_status = {self.imu_status}",
+            f"imu_feedback = {self.imu_feedback}",
+            f"vcc_status = {self.vcc_status}",
+            f"vcc_feedback = {self.vcc_feedback}",
+            f"trig_status = {self.trig_status}",
+            f"trig_feedback = {self.trig_feedback}"
+        ])
 
     def motor_test(self):
-        # sourcery skip: extract-duplicate-method, hoist-statement-from-if, merge-duplicate-blocks, move-assign-in-block, remove-redundant-if, split-or-ifs
         """
          This is a test to see if it's possible to predict 
          motors maintenance. It compares each servo channel 
          output to detect imbalance. Change warn and fail 
-         levels as needed.
-         
+         levels as needed.         
         """
+        warn_level = 30
+        fail_level = 45
+        
         self.motors_status = "OK"
-        self.motors_feedback = "balanced"
+        self.motors_feedback = "Motors are balanced"
         self.motors_pwm_list = []
 
         pwm_df = pd.DataFrame(
@@ -66,27 +68,18 @@ trig_feedback = {self.trig_feedback}"""
         self.motors_pwm_list = [int(x) for x in pwm_df["mean"]]
 
         # Comparing frontal motors and back motors
-        fmotors = abs(self.motors_pwm_list[0] - self.motors_pwm_list[2])
-        bmotors = abs(self.motors_pwm_list[1] - self.motors_pwm_list[3])
+        fmotors_diff = abs(self.motors_pwm_list[0] - self.motors_pwm_list[2])
+        bmotors_diff = abs(self.motors_pwm_list[1] - self.motors_pwm_list[3])
         
-        warn_level = 30
-        if fmotors >= warn_level or bmotors >= warn_level:
-            #bad_pwm = None
-            #bad_motor = None
-            if fmotors >= warn_level:
-                bad_pwm = max([self.motors_pwm_list[0], self.motors_pwm_list[2]])
-                #bad_motor = str(self.motors_pwm_list.index(bad_pwm) + 1)
-            elif bmotors >= warn_level:
-                bad_pwm = max([self.motors_pwm_list[1], self.motors_pwm_list[3]])
-                #bad_motor = str(self.motors_pwm_list.index(bad_pwm) + 1)
+        if fmotors_diff >= warn_level or bmotors_diff >= warn_level:
+            self.motors_status = "WARN"
+            diff_type = "frontal" if fmotors_diff >= warn_level else "back"
+            self.motors_feedback = f'Small difference in {diff_type} motors output.'
 
-            fail_level = 45
-            if fmotors >= fail_level or bmotors >= fail_level:
-                self.motors_status = "FAIL"
-                self.motors_feedback = f'Big difference in {"frontal" if fmotors >= fail_level else "back"} motors output.'
-            else:
-                self.motors_status = "WARN"
-                self.motors_feedback = f'Small difference in {"frontal" if fmotors >= warn_level else "back"} motors output.'
+        if fmotors_diff >= fail_level or bmotors_diff >= fail_level:
+            self.motors_status = "FAIL"
+            diff_type = "frontal" if fmotors_diff >= fail_level else "back"
+            self.motors_feedback = f'Big difference in {diff_type} motors output.'
 
     def vibe_test(self):
         """
@@ -94,27 +87,30 @@ trig_feedback = {self.trig_feedback}"""
         with UAV vibration.
         
         """
+        max_vibration = 30 #m/s/s
+        
         self.imu_status = "OK"
-        self.imu_feedback = "no vibe issues"
-
-        clips = (
-            self._vibe_df.Clip0[-1],
-            self._vibe_df.Clip1[-1],
-            self._vibe_df.Clip2[-1],
-        )
-        vibes = (
-            mean(self._vibe_df.VibeX),
-            mean(self._vibe_df.VibeY),
-            mean(self._vibe_df.VibeZ),
-        )
-
-        # Check if the vibration is enough for accel clipping
-        if any(v > 30 for v in vibes):
-            max_vibes = str(round(max(vibes), 1))
+        self.imu_feedback = "No vibe issues"
+        
+        vibes = [
+            mean(self._vibe_df.VibeX), 
+            mean(self._vibe_df.VibeY), 
+            mean(self._vibe_df.VibeZ)
+            ]
+        
+        if any(v > max_vibration for v in vibes):
+            max_vibes = round(max(vibes), 1)
             self.imu_status = "WARN"
             self.imu_feedback = f"Several vibration ({max_vibes} m/s/s)."
-        elif any(c > 0 for c in clips):
-            max_clips = str(max(clips))
+        
+        clips = [
+            self._vibe_df.Clip0[-1], 
+            self._vibe_df.Clip1[-1], 
+            self._vibe_df.Clip2[-1]
+            ]
+        
+        if any(c > 0 for c in clips):
+            max_clips = max(clips)
             self.imu_status = "FAIL"
             self.imu_feedback = f"Accel was clipped {max_clips} times."
     
@@ -129,20 +125,31 @@ trig_feedback = {self.trig_feedback}"""
 
         self.vcc_status = "OK"
         self.vcc_feedback = (
-            f"No board voltage issues (avg: {self.vcc_mean}v, std: {self.vcc_std}v)."
+            f"No board voltage issues ({self.vcc_mean}v, ±{self.vcc_std}v)"
         )
 
         # Check the voltage deviation of the board
         if self.vcc_std >= 0.1:
             self.vcc_status = "WARN"
             self.vcc_feedback = (
-                f"Small voltage deviation ({self.vcc_std}v), please check the board."
+                f"Small voltage deviation ({self.vcc_mean}v, ±{self.vcc_std}v)"
             )
-        # Check the board to see if the voltage deviation is greater than 0.15v
         if self.vcc_std >= 0.15:
             self.vcc_status = "FAIL"
             self.vcc_feedback = (
-                f"Big voltage deviation ({self.vcc_std}v), please check the board."
+                f"Big voltage deviation ({self.vcc_mean}v, ±{self.vcc_std}v)"
+            )
+        
+        # Check the avg voltage of the board
+        if self.vcc_mean < 5:
+            self.vcc_status = "WARN"
+            self.vcc_feedback = (
+                f"Internal board voltage is low ({self.vcc_mean}v, ±{self.vcc_std}v)"
+            )   
+        if self.vcc_mean < 4.9:
+            self.vcc_status = "FAIL"
+            self.vcc_feedback = (
+                f"Internal board voltage is too low! ({self.vcc_mean}v, ±{self.vcc_std}v)"
             )
 
     def trig_test(self):
@@ -153,18 +160,16 @@ trig_feedback = {self.trig_feedback}"""
         """
         triggers = self._trig_df.shape[0]
         feedbacks = self._cam_df.shape[0]
-        # This function is called when the camera has skipped the triggers.
+        
         if triggers == feedbacks:
             self.trig_status = "OK"
-            self.trig_feedback = f"no photos skipped ({triggers})."
+            self.trig_feedback = f"No photos skipped ({triggers})"
         elif triggers > feedbacks:
             self.trig_status = "FAIL"
-            self.trig_feedback = (
-                f"{triggers - feedbacks} photos were taken without feedback."
-            )
+            self.trig_feedback = (f"{triggers - feedbacks} photos were taken without feedback")
         elif triggers < feedbacks:
             self.trig_status = "FAIL"
-            self.trig_feedback = f"the camera skipped {feedbacks - triggers} photos."
+            self.trig_feedback = f"There were {feedbacks - triggers} false feedbacks"
 
     def run(self):
         """

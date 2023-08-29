@@ -25,6 +25,12 @@ class DayChecker:
         """
         self.flight_log = flight_log
         self.run()
+        
+    def __repr__(self):
+        return f"\n".join([
+            f'Flight date: {self.df_dict["EV"].index[0]}',
+            f'Flight log: {self.flight_log}'
+            ])
 
     def create_csv(self):
         """
@@ -58,7 +64,11 @@ class DayChecker:
         csv_file = os.path.join(self.flight_log.parent, csv_name + ".csv")
 
         with open(csv_file, "r") as csv:
-            df = pd.read_csv(csv, on_bad_lines="skip", index_col="timestamp")
+            df = pd.read_csv(
+                csv, 
+                on_bad_lines="skip", 
+                index_col="timestamp"
+                )
             df.index = pd.to_datetime(df.index, unit="s", origin="unix")
         return df
 
@@ -106,6 +116,7 @@ class DayChecker:
             """
             files = [f for f in os.listdir(img_path) if f.endswith(".JPG")]
             random_file = random.choice(files)
+            
             with open(os.path.join(img_path, random_file), "rb") as f:
                 exif_data = exifread.process_file(f)
             return exif_data
@@ -140,7 +151,7 @@ class DayChecker:
             keys = self.mdata_test.keys()
             # This method will set the result of the sensor test.
             if all(self.mdata_test[test][0] == "OK" for test in keys):
-                self.mdata_test["Result"] = ["OK", "no sensor issues"]
+                self.mdata_test["Result"] = ["OK", "No sensor issues"]
             else:
                 # This method will set the result of all tests in the test dictionary
                 for test in keys:
@@ -150,22 +161,36 @@ class DayChecker:
         except Exception as e:
             print(f"Error ocurred in the metadata test: {str(e)}")
     
-    def seqlog_check(self):
+    def seqlog_check(self):          # sourcery skip: extract-method, use-named-expression
         path = self.flight_log.parent
         seqlog = [f for f in os.listdir(path) if f.startswith("SEQ")]
+        self.seqlog_test = {}
         
-        if len(seqlog) > 0:
+        if seqlog:
             seqlog_rtcm = os.path.join(path, "SEQLOG00.txt")
             seqlog_rinex = os.path.join(path, "SEQLOG00.obs")
+
+            gps_test.parse_rtcm_to_rinex(seqlog_rtcm)
+            rinex_epochs = gps_test.get_rinex_epochs(seqlog_rinex)
+
+            self.seqlog_test['gps_freq'] = gps_test.check_gps_frequency(rinex_epochs)
+
+            self.seqlog_test['gps_date'] = gps_test.check_gps_date(rinex_epochs)
+            self.seqlog_test['epochs_ratio'] = gps_test.check_epochs_ratio(rinex_epochs, 0.5)
             
-            gps_test.convert_rtcm_to_rinex(seqlog_rtcm)
-            obs_times = gps_test.get_rinex_times(seqlog_rinex)
-            obs_freq = gps_test.check_obs_frequency(obs_times)
-            obs_period = gps_test.check_obs_period(obs_times)
-            
-            self.seqlog_test = (obs_freq, obs_period)
+            keys = self.seqlog_test.keys()
+            if all(self.seqlog_test[test][0] == 'OK' for test in keys):
+                self.seqlog_test['Result'] = ('OK', 'No issues related to GPS')        
+            else:
+                for test in keys:
+                    if self.seqlog_test[test][0] != 'OK':
+                        error_found = True
+                        error_message = self.seqlog_test[test]
+                        
+                if error_found:
+                    self.seqlog_test['Result'] = error_message
         else:
-            self.seqlog_test = (True, True)
+            self.seqlog_test['Result'] = ('WARN', 'No SEQLOG found')
     
     def create_linestring(self, kml):
         """Creates a linestring feature based on the lat and lon of the CAM messages within the log.
@@ -180,7 +205,7 @@ class DayChecker:
 
         ls = kml.newlinestring(name=self.flight_log.name)
         coords_list = [
-            (row.Lng, row.Lat) for index, row in self.df_dict["CAM"].iterrows()
+            (row.Lng, row.Lat) for _, row in self.df_dict["CAM"].iterrows()
         ]
         ls.coords = coords_list
         return ls
@@ -206,41 +231,48 @@ class DayChecker:
 
     def change_line_style(self, feature):
         """
-        Set the style of the simplekml.LineString. It is used to indicate the sensor used in the flight.
+        Set the style of the simplekml.LineString based on the results of the tests below..
          
          @param feature - linestring to be stylized
         """
         new_style = simplekml.Style()
-        new_style.linestyle.width = 2.0
-        
+        new_style.linestyle.width = 2
+        new_style.linestyle.color = simplekml.Color.red
+             
         if 'FAIL' in self.mdata_test["Result"][0]:
-            new_style.linestyle.color = simplekml.Color.yellow        
-        elif not (self.seqlog_test[0] & self.seqlog_test[1]):
-            new_style.linestyle.color = simplekml.Color.yellow            
-        elif 'FAIL' in self.report.trig_status:
-            new_style.linestyle.color = simplekml.Color.yellow            
-        else:
-            new_style.linestyle.color = simplekml.Color.red
+            new_style.linestyle.color = simplekml.Color.yellow
+                     
+        elif 'FAIL' in self.seqlog_test["Result"][0]:
+            new_style.linestyle.color = simplekml.Color.yellow             
+                            
+        elif 'FAIL' in self.htests.trig_status:
+            new_style.linestyle.color = simplekml.Color.yellow
         
-        #//OLD LOGIC//
-        # if "OK" in self.mdata_test["Result"][0]:
-        #     new_style.linestyle.color = simplekml.Color.red
-        # #checking seqlog consistency
-        # elif (self.seqlog_test[0] & self.seqlog_test[1]):
-        #     new_style.linestyle.color = simplekml.Color.red
-        # elif self.report.trig_status == 'OK':
-        #     new_style.linestyle.color = simplekml.Color.red
-        # else:
-        #     new_style.linestyle.color = simplekml.Color.yellow
+        elif 'FAIL' in self.htests.vcc_status:
+            new_style.linestyle.color = simplekml.Color.yellow
         
         feature.style = new_style
             
     def get_drone_uid(self):
+        """Gets the flight controller serial number.
+
+        Returns:
+            str: Flight controller number
+        """
         msgs = self.df_dict["MSG"]
         mask = msgs["Message"].str.startswith('Pixhawk')
         raw_uid = msgs[mask]['Message'][0].split()
-        drone_uid = ''.join(raw_uid[1:])
-        return drone_uid
+        return ''.join(raw_uid[1:])
+    
+    def get_drone_no(self):
+        """Gets the drone internal ID based on a module containing the serial dict. If didn't find it, it returns the full UID number.
+
+        Returns:
+            str: Flight controller internal ID
+        """
+        from internal.drones import serial_dict
+        
+        return serial_dict.get(self.drone_uid, self.drone_uid)
 
     #TODO: error dealing when BAT sheet is filled with NaN
     def create_balloon_report(self, feature):
@@ -253,25 +285,24 @@ class DayChecker:
         flight_time = self.df_dict["EV"].index[-1] - flight_date
                 
         #Text variables
-        drone_uid = self.drone_uid
-        f_time = f"{str(flight_time.components.minutes)}m {str(flight_time.components.seconds)}s"
+        drone_no = self.get_drone_no()
+        f_time = f"{flight_time.components.minutes}m {flight_time.components.seconds}s"
         batt_cons = f"{str(round(self.df_dict['BAT'].CurrTot[-1]))} mAh"
         photos = f"{self.mdata_test['Result'][0]}"
         photos_fb = f"{self.mdata_test['Result'][1]}"
-        trigger = f"{self.report.trig_status}"
-        trig_fb = f"{self.report.trig_feedback}"
-        motors = f"{self.report.motors_status}"
-        motors_fb = f"{self.report.motors_feedback}"
-        imu = f"{self.report.imu_status}"
-        imu_fb = f"{self.report.imu_feedback}"
-        vcc = f"{self.report.vcc_status}"
-        vcc_fb = f"{self.report.vcc_feedback}"
-        gps_freq = f"{'Frequency OK (5 Hz)' if self.seqlog_test[0] == True else 'Bad observations frequency'}"
-        gps_period = f"{'period OK (same day)' if self.seqlog_test[1] == True else 'bad period (at least two days in the SEQLOG file)'}"
+        trigger = f"{self.htests.trig_status}"
+        trig_fb = f"{self.htests.trig_feedback}"
+        motors = f"{self.htests.motors_status}"
+        motors_fb = f"{self.htests.motors_feedback}"
+        imu = f"{self.htests.imu_status}"
+        imu_fb = f"{self.htests.imu_feedback}"
+        vcc = f"{self.htests.vcc_status}"
+        vcc_fb = f"{self.htests.vcc_feedback}"
+        gps = f"{self.seqlog_test['Result'][0]}"
+        gps_fb = f"{self.seqlog_test['Result'][1]}"
 
         feature.balloonstyle.text = balloon_report_template(
-            #TODO: add drone uid to template
-            drone_uid,
+            drone_no,
             flight_date,
             f_time, 
             batt_cons, 
@@ -283,10 +314,10 @@ class DayChecker:
             trig_fb,
             imu,
             imu_fb,
-            gps_freq,
-            gps_period,
             vcc,
-            vcc_fb
+            vcc_fb,
+            gps,
+            gps_fb
             )
         
     def run(self):
@@ -303,11 +334,11 @@ class DayChecker:
         self.drone_uid = self.get_drone_uid()
         
         # Running the drone health tests
-        self.report = HealthTests(
+        self.htests = HealthTests(
             self.df_dict["RCOU"],
             self.df_dict["VIBE"],
             self.df_dict["POWR"],
             self.df_dict["CAM"],
             self.df_dict["TRIG"],
         )
-        self.report.run()
+        self.htests.run()

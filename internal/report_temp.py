@@ -1,5 +1,5 @@
 def balloon_report_template(
-    drone_uid,
+    drone_no,
     flight_date, 
     f_time, 
     batt_cons, 
@@ -11,18 +11,39 @@ def balloon_report_template(
     trig_fb,
     imu,
     imu_fb,
-    gps_freq,
-    gps_period,
     vcc,
-    vcc_fb
+    vcc_fb,
+    gps,
+    gps_fb
     ):
-    html = f"""<html>
+
+    status_values = {
+        'photos': photos,
+        'motors': motors,
+        'trigger': trigger,
+        'imu': imu,
+        'vcc': vcc,
+        'gps': gps
+    }
+
+    for key, status in status_values.items():
+        if 'WARN' in status:
+            status_values[key] = f'<font color="#ffcc00">{status}</font>'
+        elif 'FAIL' in status:
+            status_values[key] = f'<font color="#990000">{status}</font>'
+        else:
+            status_values[key] = f'<font color="#33cc00">{status}</font>'
+
+    return f"""<html>
     <table border="0" cellpadding="0" cellspacing="0" style="width:500px">
 	<tbody>
 		<tr>
-			<td><span style="font-size:18px"><strong>Flight date:</strong> {flight_date.date()}</span><br />
+			<td>
+			<p><span style="font-size:18px"><strong>Drone UID: </strong>{drone_no}</span><br />
+			<span style="font-size:18px"><strong>Flight date:</strong> {flight_date.date()}</span><br />
 			<span style="font-size:18px"><strong>Flight time:</strong> {f_time}</span><br />
-			<span style="font-size:18px"><strong>Battery usage:</strong> {batt_cons}</span></td>
+			<span style="font-size:18px"><strong>Battery usage:</strong> {batt_cons}</span></p>
+			</td>
 		</tr>
 		<tr>
 			<td>
@@ -32,42 +53,42 @@ def balloon_report_template(
 						<td style="background-color:#eeeeee; width:50%">
 						<p style="text-align:center"><span style="font-size:20px">📸 <strong>Photos</strong></span></p>
 
-						<p style="text-align:center"><span style="font-size:20px">{photos}</span><br />
-						<span style="font-size:18px">{photos_fb}</span></p>
+						<p style="text-align:center"><span style="font-size:28px">{status_values.get('photos')}</span><br />
+						<span style="font-size:16px">{photos_fb}</span></p>
 						</td>
 						<td style="background-color:#eeeeee; width:50%">
 						<p style="text-align:center"><span style="font-size:20px">⚙️ <strong>Motors</strong></span></p>
 
-						<p style="text-align:center"><span style="font-size:20px">{motors}</span><br />
-						<span style="font-size:18px">{motors_fb}</span></p>
+						<p style="text-align:center"><span style="font-size:28px">{status_values.get('motors')}</span><br />
+						<span style="font-size:16px">{motors_fb}</span></p>
 						</td>
 					</tr>
 					<tr>
 						<td style="background-color:#eeeeee; width:50%">
 						<p style="text-align:center"><span style="font-size:20px">💥 <strong>Triggers</strong></span></p>
 
-						<p style="text-align:center"><span style="font-size:20px">{trigger}</span><br />
-						<span style="font-size:18px">{trig_fb}</span></p>
+						<p style="text-align:center"><span style="font-size:28px">{status_values.get('trigger')}</span><br />
+						<span style="font-size:16px">{trig_fb}</span></p>
 						</td>
 						<td style="background-color:#eeeeee; width:50%">
 						<p style="text-align:center"><span style="font-size:20px">👋 <strong>IMU</strong></span></p>
 
-						<p style="text-align:center"><span style="font-size:20px">{imu}</span><br />
-						<span style="font-size:18px">{imu_fb}</span></p>
+						<p style="text-align:center"><span style="font-size:28px">{status_values.get('imu')}</span><br />
+						<span style="font-size:16px">{imu_fb}</span></p>
 						</td>
 					</tr>
 					<tr>
 						<td style="background-color:#eeeeee; width:50%">
 						<p style="text-align:center"><span style="font-size:20px">🌐 <strong>GPS / Logger</strong></span></p>
 
-						<p style="text-align:center"><span style="font-size:20px">{gps_freq}</span><br />
-						<span style="font-size:18px">{gps_period}</span></p>
+						<p style="text-align:center"><span style="font-size:28px">{status_values.get('gps')}</span><br />
+						<span style="font-size:16px">{gps_fb}</span></p>
 						</td>
 						<td style="background-color:#eeeeee; width:50%">
 						<p style="text-align:center"><span style="font-size:20px">⚡ <strong>Vcc</strong></span></p>
 
-						<p style="text-align:center"><span style="font-size:20px">{vcc}</span><br />
-						<span style="font-size:18px">{vcc_fb}</span></p>
+						<p style="text-align:center"><span style="font-size:28px">{status_values.get('vcc')}</span><br />
+						<span style="font-size:16px">{vcc_fb}</span></p>
 						</td>
 					</tr>
 				</tbody>
@@ -75,5 +96,5 @@ def balloon_report_template(
 			</td>
 		</tr>
 	</tbody>
-	</table></html>"""
-    return html
+</table>
+</html>"""
