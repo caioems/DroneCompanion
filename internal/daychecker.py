@@ -25,6 +25,12 @@ class DayChecker:
         """
         self.flight_log = flight_log
         self.run()
+        
+    def __repr__(self):
+        return f"\n".join([
+            f'Flight date: {self.df_dict["EV"].index[0]}',
+            f'Flight log: {self.flight_log}'
+            ])
 
     def create_csv(self):
         """
