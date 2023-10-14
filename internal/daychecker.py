@@ -7,7 +7,6 @@ import numpy as np
 import pandas as pd
 import internal.config as cfg
 import tests.gps_test as gps_test
-from pathlib import Path
 from internal.concave_hull import concaveHull
 from tests.healthtests import HealthTests
 from concurrent.futures import ThreadPoolExecutor
@@ -183,7 +182,6 @@ class DayChecker:
             self.seqlog_test['gps_freq'] = gps_test.check_gps_frequency(rinex_epochs)
 
             self.seqlog_test['gps_date'] = gps_test.check_gps_date(rinex_epochs)
-            #self.seqlog_test['epochs_ratio'] = gps_test.check_epochs_ratio(rinex_epochs, 0.5)
             
             keys = self.seqlog_test.keys()
             if all(self.seqlog_test[test][0] == 'OK' for test in keys):
@@ -209,12 +207,12 @@ class DayChecker:
         Returns:
             simplekml.LineString: The LineString object
         """
-
         ls = kml.newlinestring(name=self.flight_log.name)
         coords_list = [
             (row.Lng, row.Lat) for _, row in self.df_dict["CAM"].iterrows()
         ]
-        ls.coords = coords_list
+        
+        ls.coords = coords_list        
         return ls
 
     #TODO: add condition for merging polygons of merged flights
@@ -238,25 +236,24 @@ class DayChecker:
 
     def change_line_style(self, feature):
         """
-        Set the style of the simplekml.LineString based on the results of the tests below..
+        Set the style of the simplekml.LineString based on the results of the tests.
          
          @param feature - linestring to be stylized
         """
         new_style = simplekml.Style()
         new_style.linestyle.width = cfg.LINESTYLE_WIDTH
         new_style.linestyle.color = cfg.LINESTYLE_COLOR
-             
-        if 'FAIL' in self.mdata_test["Result"][0]:
-            new_style.linestyle.color = simplekml.Color.yellow
-                     
-        elif 'FAIL' in self.seqlog_test["Result"][0]:
-            new_style.linestyle.color = simplekml.Color.yellow             
-                            
-        elif 'FAIL' in self.htests.trig_status:
-            new_style.linestyle.color = simplekml.Color.yellow
         
-        elif 'FAIL' in self.htests.vcc_status:
-            new_style.linestyle.color = simplekml.Color.yellow
+        results = (
+            self.mdata_test["Result"][0],
+            self.seqlog_test["Result"][0],
+            self.htests.trig_status,
+            self.htests.vcc_status,
+            self.htests.motors_status
+            )
+        
+        if 'FAIL' in results:
+            new_style.linestyle.color = simplekml.Color.yellow            
         
         feature.style = new_style
             
