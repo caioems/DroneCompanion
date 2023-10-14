@@ -1,4 +1,5 @@
 import pandas as pd
+import internal.config as cfg
 from statistics import mean
 
 # TODO: motor efficiency = Thrust (grams) x Power (watts)
@@ -42,14 +43,15 @@ class HealthTests:
         ])
 
     def motor_test(self):
+        # sourcery skip: extract-duplicate-method, merge-duplicate-blocks, remove-redundant-if, split-or-ifs
         """
          This is a test to see if it's possible to predict 
          motors maintenance. It compares each servo channel 
          output to detect imbalance. Change warn and fail 
          levels as needed.         
         """
-        warn_level = 30
-        fail_level = 45
+        warn_level = cfg.MOTORS_WARN_LEVEL
+        fail_level = cfg.MOTORS_FAIL_LEVEL
         
         self.motors_status = "OK"
         self.motors_feedback = "Motors are balanced"
@@ -87,7 +89,7 @@ class HealthTests:
         with UAV vibration.
         
         """
-        max_vibration = 30 #m/s/s
+        max_vibration = cfg.MAX_VIBRATION
         
         self.imu_status = "OK"
         self.imu_feedback = "No vibe issues"
@@ -122,6 +124,8 @@ class HealthTests:
         """
         self.vcc_mean = round(self._powr_df.Vcc.mean(), 2)
         self.vcc_std = round(self._powr_df.Vcc.std(), 2)
+        vcc_warn = cfg.VCC_WARN_LEVEL
+        vcc_fail = cfg.VCC_FAIL_LEVEL
 
         self.vcc_status = "OK"
         self.vcc_feedback = (
@@ -141,12 +145,12 @@ class HealthTests:
             )
         
         # Check the avg voltage of the board
-        if self.vcc_mean < 5:
+        if self.vcc_mean < vcc_warn:
             self.vcc_status = "WARN"
             self.vcc_feedback = (
                 f"Internal board voltage is low ({self.vcc_mean}v, ±{self.vcc_std}v)"
             )   
-        if self.vcc_mean < 4.9:
+        if self.vcc_mean < vcc_fail:
             self.vcc_status = "FAIL"
             self.vcc_feedback = (
                 f"Internal board voltage is too low! ({self.vcc_mean}v, ±{self.vcc_std}v)"

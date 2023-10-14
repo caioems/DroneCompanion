@@ -65,7 +65,7 @@ def parse_rtcm_to_dataset(rtcm_file):
             
 def get_rinex_epochs(rinex_file, keep_rinex_file=False):
     """
-    Function to get the observations epochs of a rinex file.
+    Function to get the epochs of a rinex file.
     :param rinex_file: Path to the RINEX obs file.
     :type rinex_file: str
     :type r_epochs: pd.DateTimeIndex

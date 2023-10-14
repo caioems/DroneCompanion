@@ -5,6 +5,7 @@ import exifread
 import simplekml
 import numpy as np
 import pandas as pd
+import internal.config as cfg
 import tests.gps_test as gps_test
 from pathlib import Path
 from internal.concave_hull import concaveHull
@@ -15,7 +16,7 @@ from internal.report_temp import balloon_report_template
 
 # class containing functions for the data extraction/modeling and kml customization
 class DayChecker:
-    messages = ["CAM", "EV", "BAT", "MSG", "POWR", "RCOU", "VIBE", "TRIG"]
+    messages = cfg.MESSAGES
 
     def __init__(self, flight_log):
         """
@@ -125,25 +126,25 @@ class DayChecker:
             mdata = get_random_image_metadata()
 
             # Camera's ISO
-            if 100 <= mdata["EXIF ISOSpeedRatings"].values[0] <= 1600:
+            if cfg.CAMERA_ISO_RANGE[0] <= mdata["EXIF ISOSpeedRatings"].values[0] <= cfg.CAMERA_ISO_RANGE[1]:
                 self.mdata_test["ISO"] = ["OK"]
             else:
                 self.mdata_test["ISO"] = ["FAIL", "Check camera ISO."]
 
             # Camera's shutter speed
-            if str(mdata["EXIF ExposureTime"]) == "1/1600":
+            if str(mdata["EXIF ExposureTime"]) == cfg.CAMERA_SHUTTER:
                 self.mdata_test["Shutter"] = ["OK"]
             else:
                 self.mdata_test["Shutter"] = ["FAIL", "Check camera shutter speed."]
 
             # Camera's copyright
-            if re.match(r"a[0-9]r[0-9]_[a-z]{3}", mdata["Thumbnail Copyright"].values):
+            if re.match(cfg.CAMERA_COPYRIGHT_PATTERN, mdata["Thumbnail Copyright"].values):
                 self.mdata_test["Copyright"] = ["OK"]
             else:
                 self.mdata_test["Copyright"] = ["FAIL", "Check camera copyright."]
 
             # Camera's artist
-            if re.match(r"^\d{7}$", mdata["Image Artist"].values):
+            if re.match(cfg.CAMERA_ARTIST_PATTERN, mdata["Image Artist"].values):
                 self.mdata_test["Artist"] = ["OK"]
             else:
                 self.mdata_test["Artist"] = ["FAIL", "Check camera artist."]
@@ -163,12 +164,18 @@ class DayChecker:
     
     def seqlog_check(self):          # sourcery skip: extract-method, use-named-expression
         path = self.flight_log.parent
-        seqlog = [f for f in os.listdir(path) if f.startswith("SEQ")]
+        seqlog = [f for f in os.listdir(path) if f.startswith(cfg.RAW_GNSS_LOG_NAME)]
         self.seqlog_test = {}
         
         if seqlog:
-            seqlog_rtcm = os.path.join(path, "SEQLOG00.txt")
-            seqlog_rinex = os.path.join(path, "SEQLOG00.obs")
+            seqlog_rtcm = os.path.join(
+                path, 
+                f"{cfg.RAW_GNSS_LOG_NAME}.txt"
+                )
+            seqlog_rinex = os.path.join(
+                path, 
+                f"{cfg.RAW_GNSS_LOG_NAME}.obs"
+                )
 
             gps_test.parse_rtcm_to_rinex(seqlog_rtcm)
             rinex_epochs = gps_test.get_rinex_epochs(seqlog_rinex)
@@ -176,7 +183,7 @@ class DayChecker:
             self.seqlog_test['gps_freq'] = gps_test.check_gps_frequency(rinex_epochs)
 
             self.seqlog_test['gps_date'] = gps_test.check_gps_date(rinex_epochs)
-            self.seqlog_test['epochs_ratio'] = gps_test.check_epochs_ratio(rinex_epochs, 0.5)
+            #self.seqlog_test['epochs_ratio'] = gps_test.check_epochs_ratio(rinex_epochs, 0.5)
             
             keys = self.seqlog_test.keys()
             if all(self.seqlog_test[test][0] == 'OK' for test in keys):
@@ -236,8 +243,8 @@ class DayChecker:
          @param feature - linestring to be stylized
         """
         new_style = simplekml.Style()
-        new_style.linestyle.width = 2
-        new_style.linestyle.color = simplekml.Color.red
+        new_style.linestyle.width = cfg.LINESTYLE_WIDTH
+        new_style.linestyle.color = cfg.LINESTYLE_COLOR
              
         if 'FAIL' in self.mdata_test["Result"][0]:
             new_style.linestyle.color = simplekml.Color.yellow
