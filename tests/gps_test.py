@@ -15,31 +15,31 @@ def parse_rtcm_to_rinex(rtcm_file, method='rtklib'):
     """
     if not os.path.exists(rtcm_file):
         raise FileNotFoundError(f"RTCM3 file not found: {rtcm_file}")
-    
-    def calculates_hash():
-        from hashlib import md5
+
+    # def calculates_hash():
+    #     from hashlib import md5
         
-        hash_obj = md5()
-        with open(rtcm_file, 'rb') as file:
-            while True:
-                data = file.read(65536)
-                if not data:
-                    break
-                hash_obj.update(data)
-        return hash_obj.hexdigest()
+    #     hash_obj = md5()
+    #     with open(rtcm_file, 'rb') as file:
+    #         while True:
+    #             data = file.read(65536)
+    #             if not data:
+    #                 break
+    #             hash_obj.update(data)
+    #     return hash_obj.hexdigest()
 
     if method == 'rtklib':
         try:
             command = f"convbin.exe -r rtcm3 -v 3.03 {rtcm_file}"
-            subprocess.run(
+            return subprocess.run(
                 command, 
-                stdout=subprocess.DEVNULL, 
+                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL, 
                 shell=True
                 )
         except Exception:
             print(f"RTCM3 file could not be parsed - {Exception}")
-            
+
     elif method == 'ringo':
         try:
             command = f"ringo.exe rtcmgo {rtcm_file} --outver 3.03 --outobs {rtcm_file[:-3]}obs"

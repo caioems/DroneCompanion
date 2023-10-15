@@ -82,6 +82,7 @@ class PipeLine:
         flight_ls = self.dc.create_linestring(self._kml)
         self.dc.change_line_style(flight_ls)
         self.dc.create_balloon_report(flight_ls)
+        return self.dc
 
 ##running when not being imported
 if __name__ == "__main__":
