@@ -12,6 +12,9 @@ from tests.healthtests import HealthTests
 from concurrent.futures import ThreadPoolExecutor
 from internal.report_temp import balloon_report_template
 
+import warnings
+warnings.simplefilter(action='ignore', category=FutureWarning)
+
 
 # class containing functions for the data extraction/modeling and kml customization
 class DayChecker:

@@ -2,6 +2,9 @@ import pandas as pd
 import internal.config as cfg
 from statistics import mean
 
+import warnings
+warnings.simplefilter(action='ignore', category=FutureWarning)
+
 # TODO: motor efficiency = Thrust (grams) x Power (watts)
 class HealthTests:
     def __init__(self, rcou_df, vibe_df, powr_df, cam_df, trig_df):
