@@ -2,9 +2,6 @@ import pandas as pd
 import internal.config as cfg
 from statistics import mean
 
-import warnings
-warnings.simplefilter(action='ignore', category=FutureWarning)
-
 # TODO: motor efficiency = Thrust (grams) x Power (watts)
 class HealthTests:
     def __init__(self, rcou_df, vibe_df, powr_df, cam_df, trig_df):
@@ -109,9 +106,9 @@ class HealthTests:
             self.imu_feedback = f"Several vibration ({max_vibes} m/s/s)."
         
         clips = [
-            self._vibe_df.Clip0[-1], 
-            self._vibe_df.Clip1[-1], 
-            self._vibe_df.Clip2[-1]
+            self._vibe_df.Clip0.iloc[-1],
+            self._vibe_df.Clip1.iloc[-1], 
+            self._vibe_df.Clip2.iloc[-1]
             ]
         
         if any(c > 0 for c in clips):

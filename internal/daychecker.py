@@ -12,11 +12,7 @@ from tests.healthtests import HealthTests
 from concurrent.futures import ThreadPoolExecutor
 from internal.report_temp import balloon_report_template
 
-import warnings
-warnings.simplefilter(action='ignore', category=FutureWarning)
-
-
-# class containing functions for the data extraction/modeling and kml customization
+# Class containing functions for the data extraction/modeling and kml customization
 class DayChecker:
     messages = cfg.MESSAGES
 
@@ -268,7 +264,7 @@ class DayChecker:
         """
         msgs = self.df_dict["MSG"]
         mask = msgs["Message"].str.startswith('Pixhawk')
-        raw_uid = msgs[mask]['Message'][0].split()
+        raw_uid = msgs[mask]['Message'].iloc[0].split()
         return ''.join(raw_uid[1:])
     
     def get_drone_no(self):
@@ -294,7 +290,7 @@ class DayChecker:
         #Text variables
         drone_no = self.get_drone_no()
         f_time = f"{flight_time.components.minutes}m {flight_time.components.seconds}s"
-        batt_cons = f"{str(round(self.df_dict['BAT'].CurrTot[-1]))} mAh"
+        batt_cons = f"{str(round(self.df_dict['BAT'].CurrTot.iloc[-1]))} mAh"
         photos = f"{self.mdata_test['Result'][0]}"
         photos_fb = f"{self.mdata_test['Result'][1]}"
         trigger = f"{self.htests.trig_status}"
