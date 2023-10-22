@@ -1,6 +1,5 @@
 import pandas as pd
 import internal.config as cfg
-from statistics import mean
 
 # TODO: motor efficiency = Thrust (grams) x Power (watts)
 class HealthTests:
@@ -59,10 +58,10 @@ class HealthTests:
 
         pwm_df = pd.DataFrame(
             {
-                "1": [mean(self._rcou_df.C1), max(self._rcou_df.C1)],
-                "2": [mean(self._rcou_df.C2), max(self._rcou_df.C2)],
-                "3": [mean(self._rcou_df.C3), max(self._rcou_df.C3)],
-                "4": [mean(self._rcou_df.C4), max(self._rcou_df.C4)],
+                "1": [self._rcou_df.C1.mean(), self._rcou_df.C1.max()],
+                "2": [self._rcou_df.C2.mean(), self._rcou_df.C2.max()],
+                "3": [self._rcou_df.C3.mean(), self._rcou_df.C3.max()],
+                "4": [self._rcou_df.C4.mean(), self._rcou_df.C4.max()],
             }
         ).T
         pwm_df.columns = ["mean", "max"]
@@ -95,9 +94,9 @@ class HealthTests:
         self.imu_feedback = "No vibe issues"
         
         vibes = [
-            mean(self._vibe_df.VibeX), 
-            mean(self._vibe_df.VibeY), 
-            mean(self._vibe_df.VibeZ)
+            self._vibe_df.VibeX.mean(), 
+            self._vibe_df.VibeY.mean(), 
+            self._vibe_df.VibeZ.mean()
             ]
         
         if any(v > max_vibration for v in vibes):

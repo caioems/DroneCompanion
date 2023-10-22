@@ -2,7 +2,7 @@ ExifRead
 georinex==1.15
 matplotlib
 numpy
-pandas==1.5.2
+pandas
 pymavlink
 pyrtcm
 scipy

@@ -14,7 +14,8 @@ class LogList:
       root.destroy()
       return path
     
-    def create_log_list(self, root_folder):
-        return list(pathlib.Path(root_folder).glob(r"**\*.BIN"))
+    def create_log_list(self, root_folder, extension='BIN'):
+        pattern = f"**/*.{extension}"
+        return list(pathlib.Path(root_folder).rglob(pattern))
     
     

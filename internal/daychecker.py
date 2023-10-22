@@ -14,7 +14,6 @@ from internal.report_temp import balloon_report_template
 
 # Class containing functions for the data extraction/modeling and kml customization
 class DayChecker:
-    messages = cfg.MESSAGES
 
     def __init__(self, flight_log):
         """
@@ -50,7 +49,7 @@ class DayChecker:
             )
 
         with ThreadPoolExecutor() as executor:
-            executor.map(mycmd, DayChecker.messages)
+            executor.map(mycmd, cfg.MESSAGES)
 
     def create_df(self, csv_name):
         """
@@ -73,12 +72,12 @@ class DayChecker:
 
     def create_df_dict(self):
         """
-        Create and return a dictionary of dataframes. Keys are each of DayChecker.messages and values are their respective pandas DataFrames.
+        Create and return a dictionary of dataframes. Keys are each of cfg.MESSAGES and values are their respective pandas DataFrames.
 
 
         @return Dictionary of dataframes
         """
-        self.df_dict = {i: self.create_df(i) for i in DayChecker.messages}
+        self.df_dict = {i: self.create_df(i) for i in cfg.MESSAGES}
         return self.df_dict
 
     def delete_csv(self):
@@ -96,7 +95,7 @@ class DayChecker:
             os.remove(csv_file)
 
         with ThreadPoolExecutor() as executor:
-            executor.map(delete_all_csv, DayChecker.messages)
+            executor.map(delete_all_csv, cfg.MESSAGES)
 
     def metadata_test(self):
         """
@@ -113,7 +112,7 @@ class DayChecker:
 
             @return A dictionary of exif data for the image.
             """
-            files = [f for f in os.listdir(img_path) if f.endswith(".JPG")]
+            files = [f for f in os.scandir(img_path) if f.endswith(".JPG")]
             random_file = random.choice(files)
             
             with open(os.path.join(img_path, random_file), "rb") as f:
@@ -239,21 +238,22 @@ class DayChecker:
          
          @param feature - linestring to be stylized
         """
-        new_style = simplekml.Style()
-        new_style.linestyle.width = cfg.LINESTYLE_WIDTH
-        new_style.linestyle.color = cfg.LINESTYLE_COLOR
-        
-        results = (
-            self.mdata_test["Result"][0],
-            self.seqlog_test["Result"][0],
-            self.htests.trig_status,
-            self.htests.vcc_status,
-            self.htests.motors_status
+        new_style = simplekml.Style(
+            linestyle=simplekml.LineStyle(
+                width=cfg.LINESTYLE_WIDTH, 
+                color=cfg.LINESTYLE_COLOR
+                )
             )
-        
-        if 'FAIL' in results:
+
+        if 'FAIL' in (
+            self.mdata_test["Result"][0],
+            self.seqlog_test["Result"][0], 
+            self.htests.trig_status, 
+            self.htests.vcc_status, 
+            self.htests.motors_status):
+            
             new_style.linestyle.color = simplekml.Color.yellow            
-        
+
         feature.style = new_style
             
     def get_drone_uid(self):
