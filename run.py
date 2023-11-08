@@ -74,7 +74,8 @@ class PipeLine:
         """
         # Creating main class
         self.dc = DayChecker(flight_log)
-
+        
+        #TODO: add other output formats (csv, js)
         # Storing data into db
         self.write_to_db()
 
@@ -96,7 +97,7 @@ if __name__ == "__main__":
             total=len(flights._log_list)
             )
         )
-
+    
     flights._kml.save(kml_file)
     print("Done.")
     os.startfile(kml_file)

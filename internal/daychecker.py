@@ -112,7 +112,7 @@ class DayChecker:
 
             @return A dictionary of exif data for the image.
             """
-            files = [f for f in os.scandir(img_path) if f.endswith(".JPG")]
+            files = [f for f in os.listdir(img_path) if f.endswith(".JPG")]
             random_file = random.choice(files)
             
             with open(os.path.join(img_path, random_file), "rb") as f:
