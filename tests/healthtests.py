@@ -1,5 +1,5 @@
 import pandas as pd
-from statistics import mean
+import internal.config as cfg
 
 # TODO: motor efficiency = Thrust (grams) x Power (watts)
 class HealthTests:
@@ -42,14 +42,15 @@ class HealthTests:
         ])
 
     def motor_test(self):
+        # sourcery skip: extract-duplicate-method, merge-duplicate-blocks, remove-redundant-if, split-or-ifs
         """
          This is a test to see if it's possible to predict 
          motors maintenance. It compares each servo channel 
          output to detect imbalance. Change warn and fail 
          levels as needed.         
         """
-        warn_level = 30
-        fail_level = 45
+        warn_level = cfg.MOTORS_WARN_LEVEL
+        fail_level = cfg.MOTORS_FAIL_LEVEL
         
         self.motors_status = "OK"
         self.motors_feedback = "Motors are balanced"
@@ -57,10 +58,10 @@ class HealthTests:
 
         pwm_df = pd.DataFrame(
             {
-                "1": [mean(self._rcou_df.C1), max(self._rcou_df.C1)],
-                "2": [mean(self._rcou_df.C2), max(self._rcou_df.C2)],
-                "3": [mean(self._rcou_df.C3), max(self._rcou_df.C3)],
-                "4": [mean(self._rcou_df.C4), max(self._rcou_df.C4)],
+                "1": [self._rcou_df.C1.mean(), self._rcou_df.C1.max()],
+                "2": [self._rcou_df.C2.mean(), self._rcou_df.C2.max()],
+                "3": [self._rcou_df.C3.mean(), self._rcou_df.C3.max()],
+                "4": [self._rcou_df.C4.mean(), self._rcou_df.C4.max()],
             }
         ).T
         pwm_df.columns = ["mean", "max"]
@@ -87,15 +88,15 @@ class HealthTests:
         with UAV vibration.
         
         """
-        max_vibration = 30 #m/s/s
+        max_vibration = cfg.MAX_VIBRATION
         
         self.imu_status = "OK"
         self.imu_feedback = "No vibe issues"
         
         vibes = [
-            mean(self._vibe_df.VibeX), 
-            mean(self._vibe_df.VibeY), 
-            mean(self._vibe_df.VibeZ)
+            self._vibe_df.VibeX.mean(), 
+            self._vibe_df.VibeY.mean(), 
+            self._vibe_df.VibeZ.mean()
             ]
         
         if any(v > max_vibration for v in vibes):
@@ -104,9 +105,9 @@ class HealthTests:
             self.imu_feedback = f"Several vibration ({max_vibes} m/s/s)."
         
         clips = [
-            self._vibe_df.Clip0[-1], 
-            self._vibe_df.Clip1[-1], 
-            self._vibe_df.Clip2[-1]
+            self._vibe_df.Clip0.iloc[-1],
+            self._vibe_df.Clip1.iloc[-1], 
+            self._vibe_df.Clip2.iloc[-1]
             ]
         
         if any(c > 0 for c in clips):
@@ -122,6 +123,8 @@ class HealthTests:
         """
         self.vcc_mean = round(self._powr_df.Vcc.mean(), 2)
         self.vcc_std = round(self._powr_df.Vcc.std(), 2)
+        vcc_warn = cfg.VCC_WARN_LEVEL
+        vcc_fail = cfg.VCC_FAIL_LEVEL
 
         self.vcc_status = "OK"
         self.vcc_feedback = (
@@ -141,12 +144,12 @@ class HealthTests:
             )
         
         # Check the avg voltage of the board
-        if self.vcc_mean < 5:
+        if self.vcc_mean < vcc_warn:
             self.vcc_status = "WARN"
             self.vcc_feedback = (
                 f"Internal board voltage is low ({self.vcc_mean}v, ±{self.vcc_std}v)"
             )   
-        if self.vcc_mean < 4.9:
+        if self.vcc_mean < vcc_fail:
             self.vcc_status = "FAIL"
             self.vcc_feedback = (
                 f"Internal board voltage is too low! ({self.vcc_mean}v, ±{self.vcc_std}v)"

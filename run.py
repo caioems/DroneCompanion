@@ -74,7 +74,8 @@ class PipeLine:
         """
         # Creating main class
         self.dc = DayChecker(flight_log)
-
+        
+        #TODO: add other output formats (csv, js)
         # Storing data into db
         self.write_to_db()
 
@@ -82,6 +83,7 @@ class PipeLine:
         flight_ls = self.dc.create_linestring(self._kml)
         self.dc.change_line_style(flight_ls)
         self.dc.create_balloon_report(flight_ls)
+        return self.dc
 
 ##running when not being imported
 if __name__ == "__main__":
@@ -95,7 +97,7 @@ if __name__ == "__main__":
             total=len(flights._log_list)
             )
         )
-
+    
     flights._kml.save(kml_file)
     print("Done.")
     os.startfile(kml_file)

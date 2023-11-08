@@ -1,9 +1,18 @@
 import os, subprocess
 import georinex as gr
 import pandas as pd
-from pyrtcm import RTCMReader, rtcmhelpers
 
 
+def raw_log_scrapper(root_folder):
+    from internal.loglist import LogList
+    
+    log_list = LogList.create_log_list(
+        root_folder=root_folder,
+        extension='TXT'
+        )
+    
+    return set(log_list)
+    
 def parse_rtcm_to_rinex(rtcm_file, method='rtklib'):
     """Takes the path to a RTCM3 binary text file and parses it to a RINEX obs file (using CONVBIN tool from RTKLIB by default).
 
@@ -16,29 +25,42 @@ def parse_rtcm_to_rinex(rtcm_file, method='rtklib'):
     if not os.path.exists(rtcm_file):
         raise FileNotFoundError(f"RTCM3 file not found: {rtcm_file}")
 
+    # def calculates_hash():
+    #     from hashlib import md5
+        
+    #     hash_obj = md5()
+    #     with open(rtcm_file, 'rb') as file:
+    #         while True:
+    #             data = file.read(65536)
+    #             if not data:
+    #                 break
+    #             hash_obj.update(data)
+    #     return hash_obj.hexdigest()
+
     if method == 'rtklib':
         try:
-            command = f"convbin.exe -r rtcm3 -v 3.03 {rtcm_file}"
-            subprocess.run(
+            #command = f"convbin.exe -r rtcm3 -v 3.03 {rtcm_file}"
+            command = ["convbin.exe", "-r", "rtcm3", "-v", "3.03", rtcm_file]
+            return subprocess.run(
                 command, 
-                stdout=subprocess.DEVNULL, 
+                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL, 
-                shell=True
+                #shell=True
                 )
-        except:
-            print("RTCM3 file could not be parsed.")
-            
+        except subprocess.CalledProcessError as e:
+            print(f"RTCM3 file could not be parsed - {e}")
+
     elif method == 'ringo':
         try:
-            command = f"ringo.exe rtcmgo {rtcm_file} --outobs {rtcm_file[:-3]}obs"
+            command = f"ringo.exe rtcmgo {rtcm_file} --outver 3.03 --outobs {rtcm_file[:-3]}obs"
             subprocess.run(
                 command, 
                 stdout=subprocess.DEVNULL, 
                 stderr=subprocess.DEVNULL, 
                 shell=True
                 )
-        except:
-            print("RTCM3 file could not be parsed.")
+        except Exception:
+            print(f"RTCM3 file could not be parsed - {Exception}")
 
 #TODO: fix this method - use rtcmhelpers.tow2utc() to get the HH:MM:SS.ffffff time related to the beginning of the day then convert it to pd.Timestamp)       
 def parse_rtcm_to_dataset(rtcm_file):
@@ -48,6 +70,8 @@ def parse_rtcm_to_dataset(rtcm_file):
     
     :return: List of observation times.
     """
+    from pyrtcm import RTCMReader, rtcmhelpers
+    
     if not os.path.exists(rtcm_file):
         raise FileNotFoundError(f"RTCM3 file not found: {rtcm_file}")
     
@@ -65,7 +89,7 @@ def parse_rtcm_to_dataset(rtcm_file):
             
 def get_rinex_epochs(rinex_file, keep_rinex_file=False):
     """
-    Function to get the observations epochs of a rinex file.
+    Function to get the epochs of a rinex file.
     :param rinex_file: Path to the RINEX obs file.
     :type rinex_file: str
     :type r_epochs: pd.DateTimeIndex
