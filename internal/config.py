@@ -2,7 +2,16 @@
 import simplekml
 
 ## DayChecker configs
-MESSAGES = ["CAM", "EV", "BAT", "MSG", "POWR", "RCOU", "VIBE", "TRIG"]
+MESSAGES = [
+    "BAT",
+    "CAM",
+    "EV",
+    "MSG",
+    "POWR",
+    "RCOU",
+    "TRIG",
+    "VIBE"
+    ]           
 
 CAMERA_ISO_RANGE = (100, 1600)
 CAMERA_SHUTTER = "1/1600"

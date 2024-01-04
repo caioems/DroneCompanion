@@ -25,34 +25,24 @@ def parse_rtcm_to_rinex(rtcm_file, method='rtklib'):
     if not os.path.exists(rtcm_file):
         raise FileNotFoundError(f"RTCM3 file not found: {rtcm_file}")
 
-    # def calculates_hash():
-    #     from hashlib import md5
-        
-    #     hash_obj = md5()
-    #     with open(rtcm_file, 'rb') as file:
-    #         while True:
-    #             data = file.read(65536)
-    #             if not data:
-    #                 break
-    #             hash_obj.update(data)
-    #     return hash_obj.hexdigest()
-
+    tests_dir = os.path.dirname(__file__)
+    
     if method == 'rtklib':
-        try:
-            #command = f"convbin.exe -r rtcm3 -v 3.03 {rtcm_file}"
-            command = ["convbin.exe", "-r", "rtcm3", "-v", "3.03", rtcm_file]
+        try:            
+            convbin_path = os.path.join(tests_dir, "convbin.exe")
+            command = [convbin_path, "-r", "rtcm3", "-v", "3.03", rtcm_file]
             return subprocess.run(
                 command, 
-                 stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL, 
-                #shell=True
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
                 )
         except subprocess.CalledProcessError as e:
             print(f"RTCM3 file could not be parsed - {e}")
 
     elif method == 'ringo':
         try:
-            command = f"ringo.exe rtcmgo {rtcm_file} --outver 3.03 --outobs {rtcm_file[:-3]}obs"
+            ringo_path = os.path.join(tests_dir, "ringo.exe")
+            command = f"{ringo_path} rtcmgo {rtcm_file} --outver 3.03 --outobs {rtcm_file[:-3]}obs"
             subprocess.run(
                 command, 
                 stdout=subprocess.DEVNULL, 
@@ -70,7 +60,7 @@ def parse_rtcm_to_dataset(rtcm_file):
     
     :return: List of observation times.
     """
-    from pyrtcm import RTCMReader, rtcmhelpers
+    from pyrtcm import RTCMReader
     
     if not os.path.exists(rtcm_file):
         raise FileNotFoundError(f"RTCM3 file not found: {rtcm_file}")

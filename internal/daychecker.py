@@ -25,7 +25,7 @@ class DayChecker:
         self.run()
         
     def __repr__(self):
-        return f"\n".join([
+        return "\n".join([
             f'Flight date: {self.df_dict["EV"].index[0]}',
             f'Flight log: {self.flight_log}'
             ])
@@ -44,8 +44,12 @@ class DayChecker:
 
             @param msg_type - String representing the message type (ex.: "CAM")
             """
+            internal_dir = os.path.dirname(__file__)
+            mavlogdump_path = os.path.join(internal_dir, "mavlogdump.py")
+            #mavlogdump_path = "internal\\mavlogdump.py"
+            
             os.system(
-                f"mavlogdump.py --planner --format csv --types {msg_type} {str(log)} > {str(path)}/{msg_type}.csv"
+                f"{mavlogdump_path} --planner --format csv --types {msg_type} {str(log)} > {str(path)}/{msg_type}.csv"
             )
 
         with ThreadPoolExecutor() as executor:
@@ -159,7 +163,7 @@ class DayChecker:
         except Exception as e:
             print(f"Error ocurred in the metadata test: {str(e)}")
     
-    def seqlog_check(self):          # sourcery skip: extract-method, use-named-expression
+    def seqlog_check(self):
         path = self.flight_log.parent
         seqlog = [f for f in os.listdir(path) if f.startswith(cfg.RAW_GNSS_LOG_NAME)]
         self.seqlog_test = {}
@@ -277,7 +281,6 @@ class DayChecker:
         
         return serial_dict.get(self.drone_uid, self.drone_uid)
 
-    #TODO: error dealing when BAT sheet is filled with NaN
     def create_balloon_report(self, feature):
         """
          Create a report for the linestrings and save it to the KML file. It is used to show a balloon with useful information in google earth.
@@ -327,21 +330,25 @@ class DayChecker:
         """
         This is the main method of the class. It will create the CSV files, the dataframes from the data files, and then delete the CSV files. It also runs the metadata tests and create the health reports.
         """
-        self.create_csv()
-        self.create_df_dict()
-        self.delete_csv()
-        self.metadata_test()
-        self.seqlog_check()
+        try:
+            self.create_csv()
+            self.create_df_dict()
+            self.delete_csv()
+            self.metadata_test()
+            self.seqlog_check()
 
-        self.flight_timestamp = str(self.df_dict["EV"].index[0].timestamp())
-        self.drone_uid = self.get_drone_uid()
-        
-        # Running the drone health tests
-        self.htests = HealthTests(
-            self.df_dict["RCOU"],
-            self.df_dict["VIBE"],
-            self.df_dict["POWR"],
-            self.df_dict["CAM"],
-            self.df_dict["TRIG"],
-        )
-        self.htests.run()
+            self.flight_timestamp = str(self.df_dict["EV"].index[0].timestamp())
+            self.drone_uid = self.get_drone_uid()
+            
+            # Running the drone health tests
+            self.htests = HealthTests(
+                self.df_dict["RCOU"],
+                self.df_dict["VIBE"],
+                self.df_dict["POWR"],
+                self.df_dict["CAM"],
+                self.df_dict["TRIG"],
+            )
+            self.htests.run()
+            
+        except Exception as e:
+            print(f'Failed! Error: {e}')

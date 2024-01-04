@@ -1,8 +1,6 @@
+
 # Drone Companion
 
-Drone Companion is a phyton-based open source ETL tool that consolidates data from UAV flight logs. By pointing out a folder containing at least one log file, it will extract data related to the system and its sensors. This data will be used to check if the flight met some of the flight protocols, such as board temperature, camera parameters and GPS quality. In the end, it outputs a KML file containing flying paths, each one with a brief final report. The processed data may be stored in a sqlite database.
+Drone Companion is a Python-based open source ETL tool that consolidates data from UAV flight logs. By pointing out a root folder, it will search within it for BIN logs and extract from them data related to the system and its sensors. This data will be used to check for flight compliance and UAV performance (e.g. Flight date and time, flight controller UID, battery usage, electronics issues, motors performance, GPS stats, etc). This way, drone operators get a compliance report on the missions carried out, guaranteeing the quality of the data collected, as well as an overview on the conditions of their UAV.
 
-If working with Power BI, requires ODBC driver:
-http://www.ch-werner.de/sqliteodbc/
-
- 
+Right now it's only compatible with ArduPilot dataflash logs. It outputs a KML file containing a summarized report and it may also store the processed data in a sqlite database (experimental).

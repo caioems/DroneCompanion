@@ -15,7 +15,7 @@ from internal.daychecker import DayChecker
 from tqdm import tqdm
 
 
-class PipeLine:
+class Main:
     def __init__(self):
         """
          Initialize the object by creating the log list 
@@ -87,7 +87,7 @@ class PipeLine:
 
 ##running when not being imported
 if __name__ == "__main__":
-    flights = PipeLine()
+    flights = Main()
     kml_file = f"{flights._root.root_folder}/flights.kml"
 
     ## map method
