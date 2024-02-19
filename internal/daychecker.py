@@ -1,12 +1,12 @@
 import os
 import re
+import hashlib
 import random
 import exifread
 import simplekml
 import numpy as np
 import pandas as pd
 import internal.config as cfg
-import tests.gps_test as gps_test
 from internal.concave_hull import concaveHull
 from tests.healthtests import HealthTests
 from concurrent.futures import ThreadPoolExecutor
@@ -15,13 +15,14 @@ from internal.report_temp import balloon_report_template
 # Class containing functions for the data extraction/modeling and kml customization
 class DayChecker:
 
-    def __init__(self, flight_log):
+    def __init__(self, flight_log, gnss_results):
         """
         Initialize the instance and run the program. This is the entry point for the class.
 
         @param flight_log - path to a BIN log file
         """
         self.flight_log = flight_log
+        self.gnss_results = gnss_results
         self.run()
         
     def __repr__(self):
@@ -162,42 +163,80 @@ class DayChecker:
                         self.mdata_test["Result"] = self.mdata_test[test]
         except Exception as e:
             print(f"Error ocurred in the metadata test: {str(e)}")
-    
-    def seqlog_check(self):
-        path = self.flight_log.parent
-        seqlog = [f for f in os.listdir(path) if f.startswith(cfg.RAW_GNSS_LOG_NAME)]
-        self.seqlog_test = {}
-        
-        if seqlog:
-            seqlog_rtcm = os.path.join(
-                path, 
-                f"{cfg.RAW_GNSS_LOG_NAME}.txt"
-                )
-            seqlog_rinex = os.path.join(
-                path, 
-                f"{cfg.RAW_GNSS_LOG_NAME}.obs"
-                )
-
-            gps_test.parse_rtcm_to_rinex(seqlog_rtcm)
-            rinex_epochs = gps_test.get_rinex_epochs(seqlog_rinex)
-
-            self.seqlog_test['gps_freq'] = gps_test.check_gps_frequency(rinex_epochs)
-
-            self.seqlog_test['gps_date'] = gps_test.check_gps_date(rinex_epochs)
             
-            keys = self.seqlog_test.keys()
-            if all(self.seqlog_test[test][0] == 'OK' for test in keys):
-                self.seqlog_test['Result'] = ('OK', 'No issues related to GPS')        
+    def calculate_md5(self, file_path):
+            md5_hash = hashlib.md5()
+            with open(file_path, "rb") as file:
+                # Read and update hash string value in blocks of 4K
+                for byte_block in iter(lambda: file.read(4096), b""):
+                    md5_hash.update(byte_block)
+            return md5_hash.hexdigest()
+    
+    def get_gnss_results(self):
+        path = self.flight_log.parent
+        seqlog_files = [f for f in os.listdir(path) if f.startswith(cfg.RAW_GNSS_LOG_NAME)]
+        self.seqlog_test = {}
+
+        try:
+            if seqlog_files:
+                seqlog = os.path.join(path, seqlog_files[0])
+                flight_md5 = self.calculate_md5(seqlog)
+
+                for gnss_dict in self.gnss_results:
+                    if gnss_dict.get('md5') == flight_md5:
+                        self.seqlog_test['gps_freq'] = gnss_dict.get('gps_freq')
+                        self.seqlog_test['gps_date'] = gnss_dict.get('gps_date')
+
+                if all(self.seqlog_test[test][0] == 'OK' for test in self.seqlog_test):
+                    self.seqlog_test['Result'] = ('OK', 'No issues related to GPS')
+                else:
+                    error_message = next((self.seqlog_test[test] for test in self.seqlog_test if self.seqlog_test[test][0] != 'OK'), None)
+                    if error_message:
+                        self.seqlog_test['Result'] = error_message
+                    else:
+                        self.seqlog_test['Result'] = ('OK', 'No issues related to GPS')
             else:
-                for test in keys:
-                    if self.seqlog_test[test][0] != 'OK':
-                        error_found = True
-                        error_message = self.seqlog_test[test]
+                self.seqlog_test['Result'] = ('WARN', 'No SEQLOG found')
+        except (IndexError, FileNotFoundError) as e:
+            print(f"Error: {e}")
+            self.seqlog_test['Result'] = ('ERROR', 'Error accessing SEQLOG file')
+        return self.seqlog_test
+    
+    # def seqlog_check(self):
+    #     path = self.flight_log.parent
+    #     seqlog = [f for f in os.listdir(path) if f.startswith(cfg.RAW_GNSS_LOG_NAME)]
+    #     self.seqlog_test = {}
+        
+    #     if seqlog:
+    #         seqlog_rtcm = os.path.join(
+    #             path, 
+    #             f"{cfg.RAW_GNSS_LOG_NAME}.txt"
+    #             )
+    #         seqlog_rinex = os.path.join(
+    #             path, 
+    #             f"{cfg.RAW_GNSS_LOG_NAME}.obs"
+    #             )
+
+    #         gps_test.parse_rtcm_to_rinex(seqlog_rtcm)
+    #         rinex_epochs = gps_test.get_rinex_epochs(seqlog_rinex)
+
+    #         self.seqlog_test['gps_freq'] = gps_test.check_gps_frequency(rinex_epochs)
+
+    #         self.seqlog_test['gps_date'] = gps_test.check_gps_date(rinex_epochs)
+            
+    #         keys = self.seqlog_test.keys()
+    #         if all(self.seqlog_test[test][0] == 'OK' for test in keys):
+    #             self.seqlog_test['Result'] = ('OK', 'No issues related to GPS')        
+    #         else:
+    #             for test in keys:
+    #                 if self.seqlog_test[test][0] != 'OK':
+    #                     error_found = True
+    #                     error_message = self.seqlog_test[test]
                         
-                if error_found:
-                    self.seqlog_test['Result'] = error_message
-        else:
-            self.seqlog_test['Result'] = ('WARN', 'No SEQLOG found')
+    #             if error_found:
+    #                 self.seqlog_test['Result'] = error_message
+    #     else:
+    #         self.seqlog_test['Result'] = ('WARN', 'No SEQLOG found')
     
     def create_linestring(self, kml):
         """Creates a linestring feature based on the lat and lon of the CAM messages within the log.
@@ -335,7 +374,9 @@ class DayChecker:
             self.create_df_dict()
             self.delete_csv()
             self.metadata_test()
-            self.seqlog_check()
+            #TODO: change methods below
+            #self.seqlog_check()
+            self.get_gnss_results()
 
             self.flight_timestamp = str(self.df_dict["EV"].index[0].timestamp())
             self.drone_uid = self.get_drone_uid()

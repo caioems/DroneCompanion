@@ -34,8 +34,8 @@ class App:
             flights = Main()
             kml_file = f"{flights._root.root_folder}/flights.kml"
 
-            with tqdm(total=len(flights._log_list), desc="Analyzing Logs", file=sys.stdout) as pbar:
-                for log in flights._log_list:
+            with tqdm(total=len(flights._bin_list), desc="Analyzing Logs", file=sys.stdout) as pbar:
+                for log in flights._bin_list:
                     flights.run(log)
                     pbar.update(1)  # Update tqdm progress bar
 

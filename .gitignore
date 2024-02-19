@@ -4,3 +4,6 @@ tests/SEQLOG00.obs
 tests/SEQLOG00.TXT
 tests/zoado01.txt
 *.prof
+tests/SEQLOG00.nav
+tests/SEQLOG00.sbs
+tests/gps_test.py

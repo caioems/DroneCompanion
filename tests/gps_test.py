@@ -1,17 +1,8 @@
-import os, subprocess
+import os
+import hashlib
+import subprocess
 import georinex as gr
 import pandas as pd
-
-
-def raw_log_scrapper(root_folder):
-    from internal.loglist import LogList
-    
-    log_list = LogList.create_log_list(
-        root_folder=root_folder,
-        extension='TXT'
-        )
-    
-    return set(log_list)
     
 def parse_rtcm_to_rinex(rtcm_file, method='rtklib'):
     """Takes the path to a RTCM3 binary text file and parses it to a RINEX obs file (using CONVBIN tool from RTKLIB by default).
@@ -134,6 +125,31 @@ def check_epochs_ratio(rinex_epochs, min_ratio, gps_freq = 0.2):
         return ('OK', '') if ratio >= min_ratio else ('FAIL', 'Bad SEQLOG recording')
     else:
         return ('FAIL', 'Two or more days within SEQLOG')
+    
+def calculate_md5(file_path):
+            md5_hash = hashlib.md5()
+            with open(file_path, "rb") as file:
+                # Read and update hash string value in blocks of 4K
+                for byte_block in iter(lambda: file.read(4096), b""):
+                    md5_hash.update(byte_block)
+            return md5_hash.hexdigest()
+
+def find_unique_gnss_logs(gnss_log_list):
+    hash_to_files = {}
+
+    for log in gnss_log_list:
+        md5_hash = calculate_md5(log)
+        hash_to_files[md5_hash] = log
+
+    unique_files = {}
+    seen_hashes = set()
+
+    for log, md5_hash in hash_to_files.items():
+        if md5_hash not in seen_hashes:
+            unique_files[md5_hash] = log
+            seen_hashes.add(md5_hash)
+
+    return unique_files
     
 if __name__ == "__main__":
     # Paths to the RTCM3 and RINEX files

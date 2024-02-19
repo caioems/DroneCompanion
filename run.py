@@ -7,12 +7,17 @@
 
 # @author: caioems
 # """
-import simplekml, os
+import os
+import simplekml
+import concurrent.futures
+from tqdm import tqdm
+
+import tests.gps_test as gps_test
 from database.repository.report_repo import RpRepo
 from database.repository.motors_repo import MtRepo
 from internal.loglist import LogList
 from internal.daychecker import DayChecker
-from tqdm import tqdm
+
 
 
 class Main:
@@ -23,7 +28,8 @@ class Main:
          
         """
         self._root = LogList()
-        self._log_list = self._root.log_list
+        self._bin_list = self._root.bin_list
+        self._gnss_list = self._root.gnss_list
         self._kml = self.create_kml()
 
     def create_kml(self, kml_name="flights"):
@@ -37,6 +43,14 @@ class Main:
         """
         self._kml = simplekml.Kml(name=kml_name)
         return self._kml
+    
+    def linestring_dev(self):
+        """
+        Method to create a line string, change its style and create a balloon report.
+        """
+        flight_ls = self.dc.create_linestring(self._kml)
+        self.dc.change_line_style(flight_ls)
+        self.dc.create_balloon_report(flight_ls)
 
     def write_to_db(self):
         """
@@ -66,38 +80,61 @@ class Main:
             self.dc.htests.motors_pwm_list[3],
         )
 
-    def run(self, flight_log):
+    def run_bin_analysis(self, flight_log, gnss_results):
         """
          Creates and runs the DayChecker. This is the main method.
          
          @param flight_log - flight log to be analyzed         
         """
         # Creating main class
-        self.dc = DayChecker(flight_log)
+        self.dc = DayChecker(flight_log, gnss_results)
         
         #TODO: add other output formats (csv, js)
         # Storing data into db
         self.write_to_db()
 
         # Creating the kml features
-        flight_ls = self.dc.create_linestring(self._kml)
-        self.dc.change_line_style(flight_ls)
-        self.dc.create_balloon_report(flight_ls)
+        self.linestring_dev()
+        
         return self.dc
-
+    
+    def run_gnss_analysis(self, gnss_log):
+        path = gnss_log.parent
+        gnss_rinex = os.path.join(
+            path,
+            f"{gnss_log.stem}.obs"
+            )
+            
+        gps_test.parse_rtcm_to_rinex(gnss_log)
+        rinex_epochs = gps_test.get_rinex_epochs(gnss_rinex)
+        
+        gnss_test = {}
+        gnss_test['md5'] = gps_test.calculate_md5(gnss_log)
+        gnss_test['gps_freq'] = gps_test.check_gps_frequency(rinex_epochs)
+        gnss_test['gps_date'] = gps_test.check_gps_date(rinex_epochs)
+        return gnss_test
+            
 ##running when not being imported
 if __name__ == "__main__":
     flights = Main()
     kml_file = f"{flights._root.root_folder}/flights.kml"
 
-    ## map method
-    results = list(
-        tqdm(
-            map(flights.run, flights._log_list), 
-            total=len(flights._log_list)
+    unique_gnss_list = gps_test.find_unique_gnss_logs(flights._gnss_list)
+    print("Processing GNSS logs...")
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        gnss_results = list(
+            tqdm(
+                executor.map(flights.run_gnss_analysis, unique_gnss_list),
+                total=len(unique_gnss_list)
             )
         )
     
+    print("Processing BIN logs...")
+    bin_results = [flights.run_bin_analysis(binlog, gnss_results) for binlog in tqdm(flights._bin_list)]
+    
     flights._kml.save(kml_file)
-    print("Done.")
+    print("Done!")
     os.startfile(kml_file)
+
+
+
